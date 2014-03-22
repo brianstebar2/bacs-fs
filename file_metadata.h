@@ -17,4 +17,6 @@ meta_t *fs_metadata;
 
 
 int add_file_meta(meta_t *root, char *name, uint64_t size, uint8_t replicas);
-void init_meta_tree(meta_t *root);
+meta_t *create_meta_t();
+void destroy_meta_t(meta_t *target);
+

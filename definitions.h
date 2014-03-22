@@ -12,12 +12,13 @@
 #include <uuid/uuid.h>
 
 
- /* ============================ *
-  * DEFAULT CONFIGURATION VALUES *
-  * ============================ */ 
-static uint8_t default_num_replicas = 3;
-static uint32_t default_block_size = 1048;
-static char default_data_folder[] = "~/bacs_data";
+
+/* ============================ *
+ * DEFAULT CONFIGURATION VALUES *
+ * ============================ */ 
+#define DEFAULT_REPLICAS 3
+#define DEFAULT_BLOCK_SIZE 1048 /* bytes */
+#define DEFAULT_DATA_PATH "~/bacs_data"
 
 
 
@@ -25,10 +26,12 @@ static char default_data_folder[] = "~/bacs_data";
   * CONSTANTS *
   * ========= */ 
 /* File metadata type constants */
+#define NOTHING 0
 #define FILE 1
 #define FOLDER 2
 
 /* File and block metadata status constants */
+#define NEW 0
 #define READY 1
 #define UPLOADING 2
 #define DOWNLOADING 3
@@ -65,9 +68,12 @@ typedef struct meta_s {
   block_t *blocks;        /* block_t's for this file */
 
   /* FOLDER-SPECIFIC METADATA */
+  uint32_t num_files;     /* Number of files in this folder */
+  uint32_t num_folders;   /* Number of subfolders in this folder */
   struct meta_s *files;   /* Files contained in this folder */
   struct meta_s *folders; /* Subfolders of this folder */
 
-  /* LINKED LIST POINTERS */
-  struct meta_s *next;    /* Point to next meta_t in this folder */
+  /* TREE AND LINKED LIST POINTERS */
+  struct meta_s *parent;  /* Parent folder (NULL if root) */
+  struct meta_s *next;    /* Next sibling in this folder */
 } meta_t;

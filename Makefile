@@ -19,16 +19,18 @@ SERVER_OBJ = $(patsubst %.c,%.o,$(SERVER_SRC))
 CLIENT_SRC = bacs_client.c
 CLIENT_OBJ = $(patsubst %.c,%.o,$(CLIENT_SRC))
 
-all: bacs-server bacs-client
+EXECS = bacs_client bacs_server
 
-bacs-server: $(COMMON_OBJ) $(SERVER_OBJ)
+all: $(EXECS)
+
+bacs_server: $(COMMON_OBJ) $(SERVER_OBJ)
 	$(CC) $(LIBS_DIRS) $(COMMON_OBJ) $(SERVER_OBJ) -o $@ $(LIBS)
 
-bacs-client: $(COMMON_OBJ) $(CLIENT_OBJ)
+bacs_client: $(COMMON_OBJ) $(CLIENT_OBJ)
 	$(CC) $(LIBS_DIRS) $(COMMON_OBJ) $(CLIENT_OBJ) -o $@ $(LIBS)
 
 %.o: %.c
 	$(CC) -c $(CPP_FLAGS) $< -o $@ $(LIBS)
 
 clean:
-	rm -f bacs-server bacs-client *.o
+	rm -f $(EXECS) *.o
