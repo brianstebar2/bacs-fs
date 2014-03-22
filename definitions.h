@@ -9,6 +9,7 @@
  */
 
 #include <stdint.h>
+#include <uuid/uuid.h>
 
 
  /* ============================ *
@@ -16,6 +17,9 @@
   * ============================ */ 
 static uint8_t default_num_replicas = 3;
 static uint32_t default_block_size = 1048;
+static char default_data_folder[] = "~/bacs_data";
+
+
 
  /* ========= *
   * CONSTANTS *
@@ -31,14 +35,15 @@ static uint32_t default_block_size = 1048;
 #define DELETED 4
 
 
+
 /* ======================== *
  * BLOCK METADATA STRUCTURE *
  * ======================== */ 
 typedef struct block_s {
-  uint32_t size = 0;
-  uint8_t status;
-  uint32_t checksum = 0; 
-  char *data;
+  uuid_t uuid;        /* Identifer for this block (and its filename) */
+  uint32_t size;      /* Bytes of data in this block */
+  uint8_t status;     /* Can be any of the status constants */
+  uint32_t checksum;  /* Checksum for verifying block data */
 } block_t;
 
 
@@ -47,20 +52,22 @@ typedef struct block_s {
   * FILE SYSTEM METADATA STRUCTURE *
   * ============================== */ 
 typedef struct meta_s {
-  uint8_t type;     /* Can be FILE or FOLDER */
-  uint8_t status;   /* Can be any of the status constants */
-  char *name;
+  /* COMMON METADATA */
+  uint8_t type;           /* Can be FILE or FOLDER */
+  uint8_t status;         /* Can be any of the status constants */
+  char *name;             /* Name of the file or folder */
+  uint64_t size;          /* Bytes in file or folder */
+  uint32_t version;       /* Number of updates to the entire metadata tree */
 
-  // FILE-SPECIFIC METADATA
-  uint64_t size = 0;
-  uint8_t num_replicas = default_num_replicas;
-  uint64_t block_count = 0;
-  block_t *blocks;
+  /* FILE-SPECIFIC METADATA */
+  uint8_t num_replicas;   /* Number of times each block should be replicated */
+  uint64_t block_count;   /* Number of blocks in file (size of *blocks array) */
+  block_t *blocks;        /* block_t's for this file */
 
-  // FOLDER-SPECIFIC METADATA
-  struct meta_s *files;
-  struct meta_s *folders;
+  /* FOLDER-SPECIFIC METADATA */
+  struct meta_s *files;   /* Files contained in this folder */
+  struct meta_s *folders; /* Subfolders of this folder */
 
-  // LINKED LIST POINTER
-  struct 
+  /* LINKED LIST POINTERS */
+  struct meta_s *next;    /* Point to next meta_t in this folder */
 } meta_t;

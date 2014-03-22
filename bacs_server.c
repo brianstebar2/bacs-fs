@@ -10,7 +10,12 @@
 
 #include <stdlib.h>
 
+#include "file_metadata.h"
+
 int main(int argc, char **argv)
 {
+  /* Initialize the file metadata tree */
+  init_meta_tree(fs_metadata);
+
   exit(0);
 }

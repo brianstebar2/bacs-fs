@@ -10,11 +10,11 @@ CC        = gcc
 INC_DIRS  =
 LIBS_DIRS =
 CPP_FLAGS = -Wall -ansi -pedantic
-LIBS      = 
+LIBS      = -luuid
 
-COMMON_SRC = 
+COMMON_SRC = die_with_error.c
 COMMON_OBJ = $(patsubst %.c,%.o,$(COMMON_SRC))
-SERVER_SRC = bacs_server.c
+SERVER_SRC = bacs_server.c file_metadata.c 
 SERVER_OBJ = $(patsubst %.c,%.o,$(SERVER_SRC))
 CLIENT_SRC = bacs_client.c
 CLIENT_OBJ = $(patsubst %.c,%.o,$(CLIENT_SRC))
@@ -28,7 +28,7 @@ bacs-client: $(COMMON_OBJ) $(CLIENT_OBJ)
 	$(CC) $(LIBS_DIRS) $(COMMON_OBJ) $(CLIENT_OBJ) -o $@ $(LIBS)
 
 %.o: %.c
-	$(CC) -c $(CPP_FLAGS) $< -o $@
+	$(CC) -c $(CPP_FLAGS) $< -o $@ $(LIBS)
 
 clean:
 	rm -f bacs-server bacs-client *.o
