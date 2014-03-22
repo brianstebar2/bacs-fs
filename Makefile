@@ -14,9 +14,9 @@ LIBS      =
 
 COMMON_SRC = 
 COMMON_OBJ = $(patsubst %.c,%.o,$(COMMON_SRC))
-SERVER_SRC = 
+SERVER_SRC = bacs_server.c
 SERVER_OBJ = $(patsubst %.c,%.o,$(SERVER_SRC))
-CLIENT_SRC = 
+CLIENT_SRC = bacs_client.c
 CLIENT_OBJ = $(patsubst %.c,%.o,$(CLIENT_SRC))
 
 all: bacs-server bacs-client
