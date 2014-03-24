@@ -8,9 +8,12 @@
  * Term Project - Distributed File System
  */
 
+#ifndef FILE_METADATA_H
+#define FILE_METADATA_H
+
 #include <stdint.h>
 
-#include "blocks.h"
+#include "definitions.h"
 
 /* Global reference to metadata structure */
 meta_t *fs_metadata;
@@ -35,3 +38,7 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
 meta_t *create_meta_t();
 meta_t *create_subfolder(meta_t *folder, const char *name);
 meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type);
+void print_meta_tree(meta_t *root, const char *prefix);
+
+
+#endif /* FILE_METADATA_H */

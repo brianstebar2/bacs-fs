@@ -9,7 +9,9 @@
  */
 
 #include <stdio.h>
+#include <inttypes.h>
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,20 +37,22 @@
  * uuids     - (return val) pointer to where the list of block UUIDs is stored
  * num_uuids - (return val) size of the UUIDs array; If 0 is returned, an error
  *             occurred
+ * 
+ * NOTE: If the file in 'path' already exists, an exception is thrown
+ * NOTE: add_file_meta allocates memory for 'uuids'; it is the responsiblity
+ *       of the caller to free the allocation
  */
 void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
                    uuid_t **uuids, uint64_t *num_uuids)
 {
   char *lower_path, **path_parts;
-  meta_t *current_folder = root;
-  int i = 0;
+  meta_t *current_folder = root, *new_file;
+  uint64_t i = 0;
+  uuid_t *results;
 
   /* Make sure path starts with a '/' */
   if(strncmp(path, "/", 1) != 0) 
     die_with_error("add_file_meta - invalid path specified");
-
-  /* Set num_uuids to 0 for now; if nothing blows up, we'll set it right later */
-  *num_uuids = 0;
 
   /* Parse full path contained in name */
   lower_path = strtolower(path);
@@ -59,16 +63,11 @@ void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
      for a null terminator */
   while(path_parts[i+1]) {
     meta_t *subfolder;
-    fprintf(stderr, " - folder name %d: '%s'\n", i, path_parts[i]);
     subfolder = find_child_meta(current_folder, path_parts[i], FOLDER);
 
     /* If the target folder doesn't exist, create it */
-    if(subfolder == NULL) {
-      fprintf(stderr, " - subfolder not found; creating one\n");
+    if(subfolder == NULL) 
       subfolder = create_subfolder(current_folder, path_parts[i]);
-    } else {
-      fprintf(stderr, " - found subfolder '%s'\n", subfolder->name);
-    }
     
     /* Switch into target folder */
     current_folder = subfolder;
@@ -80,12 +79,25 @@ void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
     /* When this loop exits, path_parts[i] will point at the filename token,
        and current_folder will point to the destination folder */
   }
-  fprintf(stderr, " - file name: '%s'\n", path_parts[i]);
+
+  /* Make sure we the file doesn't already exist */
+  if(find_child_meta(current_folder, path_parts[i], FILE) != NULL)
+    die_with_error("add_file_meta - file already exists");
 
   /* Create metadata for this file */
-
+  new_file = create_file(current_folder, path_parts[i], size, replicas);
 
   /* Pass back the list of block UUIDs for this file */
+  if(num_uuids != NULL && uuids != NULL) {
+    *num_uuids = new_file->num_blocks;
+    results = calloc(new_file->num_blocks, sizeof(uuid_t));
+    if(results == NULL) die_with_error("add_file_meta - calloc failed");
+    
+    for(i=0; i < new_file->num_blocks; i++) {
+      uuid_copy(results[i], new_file->blocks[i]->uuid);
+    }
+    *uuids = results;
+  }
 
   /* Clean up */
   free(lower_path);
@@ -131,7 +143,7 @@ void add_to_meta_tree(meta_t *parent, meta_t *child)
     tmp->version = version;
     
     if(child->type == FOLDER) { 
-      tmp->num_folders++; 
+      tmp->num_subfolders++; 
     }
     else { 
       tmp->num_files++;
@@ -164,16 +176,26 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
                     uint8_t replicas)
 {
   meta_t *new_file = create_meta_t();
+  uint64_t i;
 
   /* Populate the fields in the new file's metadata */
   new_file->type = FILE;
   new_file->status = UPLOADING;
   new_file->name = strdup(name);
   new_file->size = size;
-  new_file->replicas = replicas;
+  new_file->replicas = replicas ? replicas : DEFAULT_REPLICAS;
+
+  /* Calculate the number of blocks for this file and allocate its array of
+     block pointers */
+  new_file->num_blocks = 
+    (size / DEFAULT_BLOCK_SIZE) + ((size % DEFAULT_BLOCK_SIZE) > 0);
+  new_file->blocks = malloc(sizeof(block_t *) * new_file->num_blocks);
+  if(new_file->blocks == NULL) die_with_error("create_file - malloc failed");
 
   /* Generate blocks for this file */
-  /*fprintf(stderr, "create_file: ");*/
+  for(i = 0; i < new_file->num_blocks; i++) {
+    new_file->blocks[i] = create_block_t();
+  }
 
   /* Add file to parent's file list */
   add_to_meta_tree(parent, new_file);
@@ -203,12 +225,12 @@ meta_t *create_meta_t()
   result->size = 0;
   result->version = 0;
 
-  result->replicas = DEFAULT_REPLICAS;
-  result->block_count = 0;
+  result->replicas = 0;
+  result->num_blocks = 0;
   result->blocks = NULL;
 
   result->num_files = 0;
-  result->num_folders = 0;
+  result->num_subfolders = 0;
   result->files = NULL;
   result->subfolders = NULL;
 
@@ -278,16 +300,61 @@ void destroy_meta_t(meta_t *target)
  */
 meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
 {
-  meta_t *result = folder->subfolders;
+  meta_t *result;
+
+  if(target_type == FOLDER)
+    result = folder->subfolders;
+  else if(target_type == FILE)
+    result = folder->files;
+  else die_with_error("find_child_meta - invalid target_type");
 
   /* Iterate through child list until either a match is found or we reach
    * the end of the list */
-  fprintf(stderr, "find_child_meta('%s', '%s', %d)\n", folder->name, target, target_type);
   while(result) {
-    fprintf(stderr, " - checking '%s'\n", result->name);
     if(strcmp(target, result->name) == 0) break;
     result = result->next;
   }
 
   return result;
+}
+
+
+
+/**
+ * print_meta_tree
+ *
+ * DEBUGGING; Prints out a representation of the specified file tree
+ */
+void print_meta_tree(meta_t *folder, const char *prefix)
+{
+  meta_t *ptr = NULL;
+  char *new_prefix;
+
+  /* Print out this folder's name */
+  fprintf(stderr, "%sv%d:%s \n", prefix, folder->version, 
+    folder->name ? folder->name : "<root>");
+
+  /* Generate new prefix for recursive calls */
+  new_prefix = calloc(strlen(prefix) + 3, sizeof(char));
+  if(strlen(prefix) == 0)   
+    sprintf(new_prefix, "|--");
+  else
+    sprintf(new_prefix, "|  %s", prefix);
+  
+  /* Print out this folder's subfolders */
+  ptr = folder->subfolders;
+  while(ptr != NULL) {
+    print_meta_tree(folder->subfolders, new_prefix);
+    ptr = ptr->next;
+  }
+
+  /* Print out this folder's files */
+  ptr = folder->files;
+  while(ptr != NULL) {
+    fprintf(stderr, "%sv%d:%s - %" PRIu64 " bytes, %" PRIu64 " blocks, %d replicas\n",
+      new_prefix, ptr->version, ptr->name, ptr->size, ptr->num_blocks, ptr->replicas);
+    ptr = ptr->next;
+  }
+
+  free(new_prefix);
 }

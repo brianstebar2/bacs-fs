@@ -10,7 +10,7 @@ CC        = gcc
 INC_DIRS  =
 LIBS_DIRS =
 CPP_FLAGS = -Wall -pedantic
-LIBS      = -luuid
+LIBS      = -luuid -lm
 
 COMMON_SRC = common.c die_with_error.c
 COMMON_OBJ = $(patsubst %.c,%.o,$(COMMON_SRC))

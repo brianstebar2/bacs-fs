@@ -10,6 +10,7 @@
 
 #include <inttypes.h>
 #include <uuid/uuid.h>
+#include "common.h"
 
 
 #include <stdio.h>
@@ -21,7 +22,6 @@ int main(int argc, char **argv)
 {
   uuid_t *uuids;
   uint64_t num_uuids, i;
-  size_t x;
 
   printf("BACS - Starting file server...\n");
 
@@ -42,17 +42,16 @@ int main(int argc, char **argv)
   printf("Added /a/b/c.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
   printf("[ ");
   for(i = 0; i < num_uuids; i++) {
-    for (x = 0; x < sizeof(uuid_t); x++) {
-        if(x == 4 || x == 6 || x == 8 || x == 10)
-          printf("-");
-        printf("%02x", uuids[i][x]);
-    }
-    printf(" ");
+    printf("%s ", uuid_str(uuids[i]));
   }
   printf("]\n");
 
+  printf("\nMETA TREE\n");
+  print_meta_tree(fs_metadata, "");
 
-
+  add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0, &uuids, &num_uuids);
+  printf("\nMETA TREE\n");
+  print_meta_tree(fs_metadata, "");
 
 
 

@@ -8,6 +8,9 @@
  * Term Project - Distributed File System
  */
 
+#ifndef DEFINITIONS_H
+#define DEFINITIONS_H
+
 #include <stdint.h>
 #include <uuid/uuid.h>
 
@@ -17,7 +20,7 @@
  * DEFAULT CONFIGURATION VALUES *
  * ============================ */ 
 #define DEFAULT_REPLICAS 3
-#define DEFAULT_BLOCK_SIZE 1048 /* bytes */
+#define DEFAULT_BLOCK_SIZE 1024 /* bytes */
 #define DEFAULT_DATA_PATH "~/bacs_data"
 
 
@@ -64,12 +67,12 @@ typedef struct meta_s {
 
   /* FILE-SPECIFIC METADATA */
   uint8_t replicas;       /* Number of times each block should be replicated */
-  uint64_t block_count;   /* Number of blocks in file (size of *blocks array) */
-  block_t *blocks;        /* block_t's for this file */
+  uint64_t num_blocks;    /* Number of blocks in file (size of *blocks array) */
+  block_t **blocks;       /* Array of pointers to block_t's for this file */
 
   /* FOLDER-SPECIFIC METADATA */
   uint32_t num_files;        /* Number of files in this folder */
-  uint32_t num_folders;      /* Number of subfolders in this folder */
+  uint32_t num_subfolders;   /* Number of subfolders in this folder */
   struct meta_s *files;      /* Files contained in this folder */
   struct meta_s *subfolders; /* Subfolders of this folder */
 
@@ -77,3 +80,7 @@ typedef struct meta_s {
   struct meta_s *parent;  /* Parent folder (NULL if root) */
   struct meta_s *next;    /* Next sibling in this folder */
 } meta_t;
+
+
+
+#endif /* DEFINITIONS_H */

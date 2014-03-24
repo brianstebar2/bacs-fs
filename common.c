@@ -10,9 +10,11 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "common.h"
 #include "die_with_error.h"
 
 /**
@@ -23,7 +25,8 @@
  *
  * Borrwed from http://stackoverflow.com/questions/2661766/c-convert-a-mixed-case-string-to-all-lower-case 
  */ 
-char *strtolower(char *str){
+char *strtolower(char *str)
+{
   int i;
   char *new_str = malloc(sizeof(char)*strlen(str));
   if(new_str == NULL) die_with_error("strtolower - malloc failed");
@@ -96,5 +99,41 @@ char** str_split(char* a_str, const char a_delim)
   }
 
   free(a_str_copy);
+  return result;
+}
+
+
+
+/**
+ * uuid_str
+ * 
+ * Generates a string representation of the specified uuid_t; Returns a pointer
+ * to the new string
+ *
+ * NOTE: uuid_str allocates memory for the string; the caller is responsible 
+ *       for freeing the string 
+ */
+char *uuid_str(uuid_t uuid)
+{
+  int i;
+  char *tmp;
+
+  /* Allocate the memory for the string and zero it out */
+  char *result = malloc(sizeof(char)*37);
+  if(result == NULL) die_with_error("uuid_str - malloc failed");
+  memset(result, 0, 37);
+
+  /* Build the result string (each byte in the uuid_t is represented as two
+     hex characters; hyphens are inserted to improve readability) */
+  tmp = result;
+  for (i = 0; i < sizeof(uuid_t); i++) {
+    if(i == 4 || i == 6 || i == 8 || i == 10) {
+      sprintf(tmp, "-");
+      tmp = tmp + 1;
+    }
+    sprintf(tmp, "%02x", uuid[i]);
+    tmp = tmp + 2;
+  }
+
   return result;
 }
