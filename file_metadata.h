@@ -41,4 +41,5 @@ meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
 void print_meta_tree(meta_t *root, const char *prefix);
 
 
+
 #endif /* FILE_METADATA_H */
