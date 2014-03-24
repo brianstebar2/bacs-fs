@@ -43,10 +43,10 @@
  * BLOCK METADATA STRUCTURE *
  * ======================== */ 
 typedef struct block_s {
-  uuid_t uuid;        /* Identifer for this block (and its filename) */
-  uint32_t size;      /* Bytes of data in this block */
-  uint8_t status;     /* Can be any of the status constants */
-  uint32_t checksum;  /* Checksum for verifying block data */
+  uuid_t uuid;         /* Identifer for this block (and its filename) */
+  uint32_t size;       /* Bytes of data in this block */
+  uint8_t status;      /* Can be any of the status constants */
+  uint32_t checksum;   /* Checksum for verifying block data */
 } block_t;
 
 
@@ -63,15 +63,15 @@ typedef struct meta_s {
   uint32_t version;       /* Number of updates to the entire metadata tree */
 
   /* FILE-SPECIFIC METADATA */
-  uint8_t num_replicas;   /* Number of times each block should be replicated */
+  uint8_t replicas;       /* Number of times each block should be replicated */
   uint64_t block_count;   /* Number of blocks in file (size of *blocks array) */
   block_t *blocks;        /* block_t's for this file */
 
   /* FOLDER-SPECIFIC METADATA */
-  uint32_t num_files;     /* Number of files in this folder */
-  uint32_t num_folders;   /* Number of subfolders in this folder */
-  struct meta_s *files;   /* Files contained in this folder */
-  struct meta_s *folders; /* Subfolders of this folder */
+  uint32_t num_files;        /* Number of files in this folder */
+  uint32_t num_folders;      /* Number of subfolders in this folder */
+  struct meta_s *files;      /* Files contained in this folder */
+  struct meta_s *subfolders; /* Subfolders of this folder */
 
   /* TREE AND LINKED LIST POINTERS */
   struct meta_s *parent;  /* Parent folder (NULL if root) */

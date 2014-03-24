@@ -8,9 +8,7 @@
  * Term Project - Distributed File System
  */
 
-#include <stdlib.h>
+#include "definitions.h"
 
-int main(int argc, char **argv)
-{
-  exit(EXIT_SUCCESS);
-}
+block_t *create_block_t();
+void destroy_block_t(block_t *target);

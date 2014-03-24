@@ -10,13 +10,28 @@
 
 #include <stdint.h>
 
-#include "definitions.h"
+#include "blocks.h"
 
 /* Global reference to metadata structure */
 meta_t *fs_metadata;
 
 
-int add_file_meta(meta_t *root, char *name, uint64_t size, uint8_t replicas);
-meta_t *create_meta_t();
+
+/* ======================== *
+ * PUBLIC METHOD PROTOTYPES *
+ * ======================== */ 
+void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
+                   uuid_t **uuids, uint64_t *num_uuids);
 void destroy_meta_t(meta_t *target);
 
+
+
+/* ========================= *
+ * PRIVATE METHOD PROTOTYPES *
+ * ========================= */ 
+void add_to_meta_tree(meta_t *parent, meta_t *child);
+meta_t *create_file(meta_t *parent, const char *name, uint64_t size, 
+                    uint8_t replicas);
+meta_t *create_meta_t();
+meta_t *create_subfolder(meta_t *folder, const char *name);
+meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type);

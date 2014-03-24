@@ -8,6 +8,10 @@
  * Term Project - Distributed File System
  */
 
+#include <inttypes.h>
+#include <uuid/uuid.h>
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -15,6 +19,10 @@
 
 int main(int argc, char **argv)
 {
+  uuid_t *uuids;
+  uint64_t num_uuids, i;
+  size_t x;
+
   printf("BACS - Starting file server...\n");
 
   /* Initialize the file metadata tree */
@@ -28,6 +36,24 @@ int main(int argc, char **argv)
   printf("BACS - Server ready.\n");
 
 
+  /* Debugging crap... */
+  add_file_meta(fs_metadata, "/awesome/bad/c.txt", 4000, 0, &uuids, &num_uuids);
+
+  printf("Added /a/b/c.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
+  printf("[ ");
+  for(i = 0; i < num_uuids; i++) {
+    for (x = 0; x < sizeof(uuid_t); x++) {
+        if(x == 4 || x == 6 || x == 8 || x == 10)
+          printf("-");
+        printf("%02x", uuids[i][x]);
+    }
+    printf(" ");
+  }
+  printf("]\n");
+
+
+
+
 
 
 
@@ -37,5 +63,5 @@ int main(int argc, char **argv)
   destroy_meta_t(fs_metadata);
 
   printf("BACS - exited.\n");
-  exit(0);
+  exit(EXIT_SUCCESS);
 }

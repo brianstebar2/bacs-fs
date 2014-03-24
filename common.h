@@ -8,9 +8,5 @@
  * Term Project - Distributed File System
  */
 
-#include <stdlib.h>
-
-int main(int argc, char **argv)
-{
-  exit(EXIT_SUCCESS);
-}
+char *strtolower(char *str);
+char** str_split(char *a_str, const char a_delim);
