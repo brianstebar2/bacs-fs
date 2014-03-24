@@ -15,7 +15,27 @@
 #include <string.h>
 
 #include "common.h"
+#include "definitions.h"
 #include "die_with_error.h"
+
+
+
+/**
+ * status_string
+ *
+ * Translates status codes into string constants
+ */
+const char *status_string(uint8_t status)
+{
+  switch(status) {
+    case NEW:         return "NEW"; break;
+    case READY:       return "READY"; break;
+    case UPLOADING:   return "UPLOADING"; break;
+    case DOWNLOADING: return "DOWNLOADING"; break;
+    case DELETED:     return "DELETED"; break;
+    default:          return "UNKNOWN";
+  } 
+}
 
 /**
  * strtolower

@@ -331,8 +331,8 @@ void print_meta_tree(meta_t *folder, const char *prefix)
   char *new_prefix;
 
   /* Print out this folder's name */
-  fprintf(stderr, "%sv%d:%s \n", prefix, folder->version, 
-    folder->name ? folder->name : "<root>");
+  printf("%sv%d:%s - %s\n", prefix, folder->version, 
+    folder->name ? folder->name : "<root>", status_string(folder->status));
 
   /* Generate new prefix for recursive calls */
   new_prefix = calloc(strlen(prefix) + 3, sizeof(char));
@@ -351,8 +351,9 @@ void print_meta_tree(meta_t *folder, const char *prefix)
   /* Print out this folder's files */
   ptr = folder->files;
   while(ptr != NULL) {
-    fprintf(stderr, "%sv%d:%s - %" PRIu64 " bytes, %" PRIu64 " blocks, %d replicas\n",
-      new_prefix, ptr->version, ptr->name, ptr->size, ptr->num_blocks, ptr->replicas);
+    printf("%sv%d:%s - %s, %" PRIu64 " bytes, %" PRIu64 " blocks, %d replicas\n",
+      new_prefix, ptr->version, ptr->name, status_string(ptr->status), 
+      ptr->size, ptr->num_blocks, ptr->replicas);
     ptr = ptr->next;
   }
 

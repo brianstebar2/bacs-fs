@@ -27,6 +27,7 @@ int main(int argc, char **argv)
 
   /* Initialize the file metadata tree */
   fs_metadata = create_meta_t();
+  fs_metadata->status = READY;
 
 
 
@@ -38,8 +39,7 @@ int main(int argc, char **argv)
 
   /* Debugging crap... */
   add_file_meta(fs_metadata, "/awesome/bad/c.txt", 4000, 0, &uuids, &num_uuids);
-
-  printf("Added /a/b/c.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
+  printf("Added /awesome/bad/c.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
   printf("[ ");
   for(i = 0; i < num_uuids; i++) {
     printf("%s ", uuid_str(uuids[i]));
@@ -48,10 +48,19 @@ int main(int argc, char **argv)
 
   printf("\nMETA TREE\n");
   print_meta_tree(fs_metadata, "");
-
+  printf("\n");
+  
   add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0, &uuids, &num_uuids);
+  printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
+  printf("[ ");
+  for(i = 0; i < num_uuids; i++) {
+    printf("%s ", uuid_str(uuids[i]));
+  }
+  printf("]\n");
+
   printf("\nMETA TREE\n");
   print_meta_tree(fs_metadata, "");
+  printf("\n");
 
 
 

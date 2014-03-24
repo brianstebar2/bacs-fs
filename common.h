@@ -11,9 +11,11 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <inttypes.h>
 #include <uuid/uuid.h>
 
 
+const char *status_string(uint8_t status);
 char *strtolower(char *str);
 char** str_split(char *a_str, const char a_delim);
 char *uuid_str(uuid_t uuid);
