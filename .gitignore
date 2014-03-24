@@ -16,5 +16,5 @@
 *.exe
 *.out
 *.app
-bacs-client
-bacs-server
+bacs_client
+bacs_server
