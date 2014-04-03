@@ -8,20 +8,25 @@
  * Term Project - Distributed File System
  */
 
-#include <inttypes.h>
-#include <uuid/uuid.h>
-#include "common.h"
-
-
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "file_metadata.h"
 
+
+/* Debugging includdes */
+#include <inttypes.h>
+#include <uuid/uuid.h>
+#include "common.h"
+#include "messages.h"
+
+
 int main(int argc, char **argv)
 {
-  uuid_t *uuids;
-  uint64_t num_uuids, i;
+  /*uuid_t *uuids;
+  uint64_t num_uuids, i;*/
+  char *msg;
+  uint32_t len;
 
   printf("BACS - Starting file server...\n");
 
@@ -38,7 +43,7 @@ int main(int argc, char **argv)
 
 
   /* Debugging crap... */
-  add_file_meta(fs_metadata, "/awesome/bad/c.txt", 4000, 0, &uuids, &num_uuids);
+  /*add_file_meta(fs_metadata, "/awesome/bad/c.txt", 4000, 0, &uuids, &num_uuids);
   printf("Added /awesome/bad/c.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
   printf("[ ");
   for(i = 0; i < num_uuids; i++) {
@@ -60,7 +65,14 @@ int main(int argc, char **argv)
 
   printf("\nMETA TREE\n");
   print_meta_tree(fs_metadata, "");
-  printf("\n");
+  printf("\n");*/
+
+
+  create_msg_get_servers(&msg, &len);
+  printf("GET servers message (%d bytes): %s\n", len, msg);
+  free(msg);
+  
+
 
 
 

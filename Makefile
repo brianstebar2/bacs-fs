@@ -12,7 +12,7 @@ LIBS_DIRS =
 CPP_FLAGS = -Wall -pedantic
 LIBS      = -luuid -lm
 
-COMMON_SRC = common.c die_with_error.c
+COMMON_SRC = common.c die_with_error.c messages.c
 COMMON_OBJ = $(patsubst %.c,%.o,$(COMMON_SRC))
 SERVER_SRC = bacs_server.c file_metadata.c blocks.c
 SERVER_OBJ = $(patsubst %.c,%.o,$(SERVER_SRC))

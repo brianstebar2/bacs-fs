@@ -16,9 +16,9 @@
 
 
 
-/* ============================ *
- * DEFAULT CONFIGURATION VALUES *
- * ============================ */ 
+/* =================================== *
+ * DEFAULT SERVER CONFIGURATION VALUES *
+ * =================================== */ 
 #define DEFAULT_REPLICAS 3
 #define DEFAULT_BLOCK_SIZE 1024 /* bytes */
 #define DEFAULT_DATA_PATH "~/bacs_data"
