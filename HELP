@@ -1,0 +1,18 @@
+Commands
+
+help: displays manual
+upload: uploads file/diractory to server
+	upload -f [file]
+	upload -d [dir]
+download: downloads file/directory from server
+	download -f [file]
+	download -d [dir]
+cd: change directory
+	cd -l [local_dir]
+	cd -r [remote_dir]
+ls: view directory contents
+	ls
+mkdir: create directory
+	mkdir -l [local_dir]
+	mkdir -r [remote_dir]
+exit: exit client
