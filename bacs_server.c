@@ -23,10 +23,11 @@
 
 int main(int argc, char **argv)
 {
-  uint64_t file_size;
+  uint64_t file_size, num_uuids;
   char *msg, *filename;
   uint32_t len;
   meta_t *file_meta;
+  uuid_t *uuids;
 
   printf("BACS - Starting file server...\n");
 

@@ -69,6 +69,7 @@ uint8_t get_header_type(char *msg);
 const char *get_header_type_string(uint8_t resource);
 
 void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size);
+void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids);
 
 
 
