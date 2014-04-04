@@ -23,10 +23,10 @@
 
 int main(int argc, char **argv)
 {
-  /*uuid_t *uuids;
-  uint64_t num_uuids, i;*/
-  char *msg;
+  uint64_t file_size;
+  char *msg, *filename;
   uint32_t len;
+  meta_t *file_meta;
 
   printf("BACS - Starting file server...\n");
 
@@ -42,20 +42,28 @@ int main(int argc, char **argv)
   printf("BACS - Server ready.\n");
 
 
-  /* Debugging crap... */
-  /*add_file_meta(fs_metadata, "/awesome/bad/c.txt", 4000, 0, &uuids, &num_uuids);
-  printf("Added /awesome/bad/c.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
-  printf("[ ");
-  for(i = 0; i < num_uuids; i++) {
-    printf("%s ", uuid_str(uuids[i]));
-  }
-  printf("]\n");
 
-  printf("\nMETA TREE\n");
+  /* Debugging crap... */
+  create_msg_post_file_request("/awesome/bad/c.txt", 4000, &msg, &len);  
+  printf("Client: Sending message (%d bytes): \n", len);
+  print_msg(msg);
+  printf("\n");
+
+  parse_msg_post_file_request(msg, &filename, &file_size);
+  free(msg);
+
+  file_meta = add_file_meta(fs_metadata, filename, file_size, 0);
+  printf("SERVER META TREE\n");
   print_meta_tree(fs_metadata, "");
   printf("\n");
-  
-  add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0, &uuids, &num_uuids);
+  free(filename);
+
+  create_msg_post_file_response(file_meta, &msg, &len);
+  printf("Server: Sending message (%d bytes): \n", len);
+  print_msg(msg);
+  free(msg);
+
+  /*add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
   printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
   printf("[ ");
   for(i = 0; i < num_uuids; i++) {
@@ -63,14 +71,11 @@ int main(int argc, char **argv)
   }
   printf("]\n");
 
-  printf("\nMETA TREE\n");
+  printf("\nSERVER META TREE\n");
   print_meta_tree(fs_metadata, "");
   printf("\n");*/
 
 
-  create_msg_get_servers(&msg, &len);
-  printf("GET servers message (%d bytes): %s\n", len, msg);
-  free(msg);
   
 
 

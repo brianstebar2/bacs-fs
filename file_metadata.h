@@ -23,8 +23,7 @@ meta_t *fs_metadata;
 /* ======================== *
  * PUBLIC METHOD PROTOTYPES *
  * ======================== */ 
-void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
-                   uuid_t **uuids, uint64_t *num_uuids);
+meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas);
 void destroy_meta_t(meta_t *target);
 
 

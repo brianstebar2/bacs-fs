@@ -27,28 +27,21 @@
  *
  * Adds the specified file to the specified file metadata tree; creates the
  * folders in the file's path if nessary; creates empty blocks for the new file;
- * returns a pointer to an array of block UUIDs and its size
+ * returns a pointer to the new file's meta_t structure
  *
  * root      - the root of the metadata tree that will contain the new metadata
  * path      - the target fully-qualified path (including the file's name)
  * size      - number of bytes in the new file
  * replicas  - minimum number of replicas this file should have; if 0, then
  *             the default number of replicas will be used (see definitions.h)
- * uuids     - (return val) pointer to where the list of block UUIDs is stored
- * num_uuids - (return val) size of the UUIDs array; If 0 is returned, an error
- *             occurred
  * 
  * NOTE: If the file in 'path' already exists, an exception is thrown
- * NOTE: add_file_meta allocates memory for 'uuids'; it is the responsiblity
- *       of the caller to free the allocation
  */
-void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
-                   uuid_t **uuids, uint64_t *num_uuids)
+meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
 {
   char *lower_path, **path_parts;
   meta_t *current_folder = root, *new_file;
   uint64_t i = 0;
-  uuid_t *results;
 
   /* Make sure path starts with a '/' */
   if(strncmp(path, "/", 1) != 0) 
@@ -87,20 +80,18 @@ void add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
   /* Create metadata for this file */
   new_file = create_file(current_folder, path_parts[i], size, replicas);
 
-  /* Pass back the list of block UUIDs for this file */
-  if(num_uuids != NULL && uuids != NULL) {
-    *num_uuids = new_file->num_blocks;
-    results = calloc(new_file->num_blocks, sizeof(uuid_t));
-    if(results == NULL) die_with_error("add_file_meta - calloc failed");
-    
-    for(i=0; i < new_file->num_blocks; i++) {
-      uuid_copy(results[i], new_file->blocks[i]->uuid);
-    }
-    *uuids = results;
+  /*printf("SERVER LIST OF BLOCKS FOR %s (%" PRIu64 " blocks):\n", 
+    new_file->name, new_file->num_blocks);
+  for(i = 0; i < new_file->num_blocks; i++) {
+    char *str = uuid_str(new_file->blocks[i]->uuid);
+    printf(" - %s\n", str);
+    free(str);
   }
+  printf("\n");*/
 
-  /* Clean up */
+  /* Clean up and return */
   free(lower_path);
+  return new_file;
 }
 
 
