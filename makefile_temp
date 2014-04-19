@@ -1,0 +1,18 @@
+#for the receiver############################################. 
+server : 
+	gcc -o server server.c UDPserver.c UDPserver.h
+
+clean:
+	rm -f server
+
+
+#for the sender##############################################.
+
+
+client :
+	gcc -o client client.c UDPclient.c UDPclient.h
+
+
+clean:
+	rm -f client 
+

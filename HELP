@@ -11,7 +11,8 @@ cd: change directory
 	cd -l [local_dir]
 	cd -r [remote_dir]
 ls: view directory contents
-	ls
+	ls -l
+	ls -r
 mkdir: create directory
 	mkdir -l [local_dir]
 	mkdir -r [remote_dir]
