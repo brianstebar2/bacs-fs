@@ -45,25 +45,31 @@ int main(int argc, char **argv)
 
 
   /* Debugging crap... */
+  /* Client: Send a request to upload a new file */
   create_msg_post_file_request("/awesome/bad/c.txt", 4000, &msg, &len);  
   printf("Client: Sending message (%d bytes): \n", len);
   print_msg(msg);
   printf("\n");
 
+  /* Server: Add metadata for new file */
   parse_msg_post_file_request(msg, &filename, &file_size);
   free(msg);
-
   file_meta = add_file_meta(fs_metadata, filename, file_size, 0);
   printf("SERVER META TREE\n");
   print_meta_tree(fs_metadata, "");
   printf("\n");
   free(filename);
 
+  /* Server: send response containing list of UUIDs for new file's blocks */
   create_msg_post_file_response(file_meta, &msg, &len);
   printf("Server: Sending message (%d bytes): \n", len);
   print_msg(msg);
+  
+  /* Client: Take list of UUIDs and send each block */
+  parse_msg_post_file_response(msg, &uuids, &num_uuids);
   free(msg);
 
+  
   /*add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
   printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
   printf("[ ");
