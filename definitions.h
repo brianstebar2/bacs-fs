@@ -30,8 +30,8 @@
   * ========= */ 
 /* File metadata type constants */
 #define NOTHING 0
-#define FILE 1
-#define FOLDER 2
+#define FILE_TYPE 1
+#define FOLDER_TYPE 2
 
 /* File and block metadata status constants */
 #define NEW 0
@@ -81,6 +81,11 @@ typedef struct meta_s {
   struct meta_s *next;    /* Next sibling in this folder */
 } meta_t;
 
+
+ /* ================================ *
+  * NETWORK STACK STATUS ENUMERATORS *
+  * ================================ */ 
+typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
 
 
 #endif /* DEFINITIONS_H */

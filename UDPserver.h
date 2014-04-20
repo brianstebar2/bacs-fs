@@ -1,3 +1,7 @@
+#ifndef UDPSERVER_H
+#define UDPSERVER_H
+
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -7,8 +11,9 @@
 #include <stdlib.h> 
 #include <string.h>
 
-
-
-typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
+#include "definitions.h"
 
 void* myrecv(void);
+
+
+#endif /* UDPSERVER_H */

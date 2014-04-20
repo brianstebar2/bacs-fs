@@ -1,3 +1,7 @@
+#ifndef UDPCLIENT_H
+#define UDPCLIENT_H
+
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -7,10 +11,10 @@
 #include <stdlib.h> 
 #include <string.h>
 
-
-typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
-
+#include "definitions.h"
 
 
 ErrorCode mysend(void* p, char* IPaddr);
 
+
+#endif /* UDPCLIENT_H */

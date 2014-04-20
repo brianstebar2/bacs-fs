@@ -1,4 +1,4 @@
-//UDPClient.c
+/*UDPClient.c*/
 
 
 #include <arpa/inet.h>
@@ -30,17 +30,16 @@ ErrorCode mysend(void* p, char* IPaddr )
 	int sockfd, i, slen=sizeof(serv_addr);
 	char buf[BUFLEN];
 	char rcvbuf[BUFLEN];
-	void* voidbuf;
-	voidbuf = malloc(BUFLEN);
-	
-	//Timer variables
+	void* voidbuf = malloc(BUFLEN);
 	struct timeval timeout;
+
+	/* Timer variables */
 	timeout.tv_sec = 5;
 	timeout.tv_usec = 0; 
 
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 	{
-		//err("socket");
+		/*err("socket");*/
 		printf("Error: Socket Not Created\n");
 		return FAILURE;
 	}
@@ -55,9 +54,9 @@ ErrorCode mysend(void* p, char* IPaddr )
 		return FAILURE;
 	}
 
-	//while(1)
+	/*while(1)*/
 	{
-		//printf("Clear the rcvbuf buffer\n");
+		/*printf("Clear the rcvbuf buffer\n");*/
 		memset(rcvbuf, 0, BUFLEN);
 		memcpy(buf, p, BUFLEN);			
 		if(strcmp(buf,"exit") == 0)
@@ -66,21 +65,21 @@ ErrorCode mysend(void* p, char* IPaddr )
 		}
 
 		printf("Sending Data\n");
-		if (sendto(sockfd,buf, BUFLEN, 0, (struct sockaddr*)&serv_addr, slen)==-1)		//replacing buf with voidbuf
+		if (sendto(sockfd,buf, BUFLEN, 0, (struct sockaddr*)&serv_addr, slen)==-1)		/*replacing buf with voidbuf*/
 		{
-			//err("sendto()");
+			/*err("sendto()");*/
 			printf("sendto: Error\n\n");
 			return FAILURE;
 		}
 
-		//Configure a recieve timer
+		/* Configure a recieve timer */
 		if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout,sizeof(timeout)) < 0)
 		{
 			printf("setsockopt: Error\n\n");
 			
 		}
-		//Receive ACK from Server
-		if (recvfrom(sockfd, rcvbuf, BUFLEN, 0, (struct sockaddr*)&serv_addr, &slen)==-1)
+		/* Receive ACK from Server */
+		if (recvfrom(sockfd, rcvbuf, BUFLEN, 0, (struct sockaddr*)&serv_addr, (socklen_t*)&slen)==-1)
 		{	    	
 			return RETRY;
 		}
