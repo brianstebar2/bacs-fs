@@ -91,6 +91,7 @@ int main(int argc, char **argv)
     create_msg_post_block_response(uuids[i], &msg, &len);
     printf("Server: Sending message (%d bytes):\n", len);
     print_msg(msg);
+    free(msg);
   }
   
   /*add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);

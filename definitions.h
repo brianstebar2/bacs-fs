@@ -40,6 +40,9 @@
 #define DOWNLOADING 3
 #define DELETED 4
 
+/* Network stack constants */
+typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
+
 
 
 /* ======================== *
@@ -81,11 +84,6 @@ typedef struct meta_s {
   struct meta_s *next;    /* Next sibling in this folder */
 } meta_t;
 
-
- /* ================================ *
-  * NETWORK STACK STATUS ENUMERATORS *
-  * ================================ */ 
-typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
 
 
 #endif /* DEFINITIONS_H */
