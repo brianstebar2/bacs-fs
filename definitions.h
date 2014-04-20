@@ -30,8 +30,8 @@
   * ========= */ 
 /* File metadata type constants */
 #define NOTHING 0
-#define FILE_TYPE 1
-#define FOLDER_TYPE 2
+#define BACS_FILE_TYPE 1
+#define BACS_FOLDER_TYPE 2
 
 /* File and block metadata status constants */
 #define NEW 0

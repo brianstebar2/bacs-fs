@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
   uint64_t file_size, num_uuids;
   char *msg, *filename;
-  uint32_t len;
+  uint32_t len, i;
   meta_t *file_meta;
   uuid_t *uuids;
 
@@ -68,7 +68,30 @@ int main(int argc, char **argv)
   /* Client: Take list of UUIDs and send each block */
   parse_msg_post_file_response(msg, &uuids, &num_uuids);
   free(msg);
+  for(i=0; i < num_uuids; i++) {
+    uint32_t block_size;
+    char *block_content;
+    uuid_t block_uuid;
+    char block[DEFAULT_BLOCK_SIZE] = {0};
+    
+    /* Client: send a block */
+    sprintf(block, "Block #%d content", i);
+    /* TODO: Add checksum to post block request message */
+    create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &len);
+    printf("Client: Sending message: (%d bytes): \n", len);
+    print_msg(msg);
 
+    /* Server: write block and update block metadata */
+    parse_msg_post_block_request(msg, &block_uuid, &block_size, &block_content);
+    free(msg);
+    /* printf("SERVER FILE BLOCK META\n"); */
+    /* print_file_block_metas(file_meta); */
+
+    /* Server: send response indicicating success */
+    create_msg_post_block_response(uuids[i], &msg, &len);
+    printf("Server: Sending message (%d bytes):\n", len);
+    print_msg(msg);
+  }
   
   /*add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
   printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);

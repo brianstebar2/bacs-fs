@@ -56,7 +56,7 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
      for a null terminator */
   while(path_parts[i+1]) {
     meta_t *subfolder;
-    subfolder = find_child_meta(current_folder, path_parts[i], FOLDER_TYPE);
+    subfolder = find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE);
 
     /* If the target folder doesn't exist, create it */
     if(subfolder == NULL) 
@@ -74,7 +74,7 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
   }
 
   /* Make sure we the file doesn't already exist */
-  if(find_child_meta(current_folder, path_parts[i], FILE_TYPE) != NULL)
+  if(find_child_meta(current_folder, path_parts[i], BACS_FILE_TYPE) != NULL)
     die_with_error("add_file_meta - file already exists");
 
   /* Create metadata for this file */
@@ -120,7 +120,7 @@ void add_to_meta_tree(meta_t *parent, meta_t *child)
   child->version = version;
   child->parent = parent;
   
-  if(child->type == FOLDER_TYPE) {
+  if(child->type == BACS_FOLDER_TYPE) {
     child->next = parent->subfolders; 
     parent->subfolders = child; 
   } else {
@@ -133,7 +133,7 @@ void add_to_meta_tree(meta_t *parent, meta_t *child)
   while(tmp) {
     tmp->version = version;
     
-    if(child->type == FOLDER_TYPE) { 
+    if(child->type == BACS_FOLDER_TYPE) { 
       tmp->num_subfolders++; 
     }
     else { 
@@ -170,7 +170,7 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
   uint64_t i;
 
   /* Populate the fields in the new file's metadata */
-  new_file->type = FILE_TYPE;
+  new_file->type = BACS_FILE_TYPE;
   new_file->status = UPLOADING;
   new_file->name = strdup(name);
   new_file->size = size;
@@ -249,7 +249,7 @@ meta_t *create_subfolder(meta_t *parent, const char *name)
   meta_t *new_folder = create_meta_t();
 
   /* Populate the fields of the new folder's meta_t */
-  new_folder->type = FOLDER_TYPE;
+  new_folder->type = BACS_FOLDER_TYPE;
   new_folder->status = READY;
   new_folder->name = strdup(name);
 
@@ -294,9 +294,9 @@ meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
 {
   meta_t *result;
 
-  if(target_type == FOLDER_TYPE)
+  if(target_type == BACS_FOLDER_TYPE)
     result = folder->subfolders;
-  else if(target_type == FILE_TYPE)
+  else if(target_type == BACS_FILE_TYPE)
     result = folder->files;
   else die_with_error("find_child_meta - invalid target_type");
 

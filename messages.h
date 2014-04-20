@@ -25,15 +25,15 @@
 #define DELETE 4
 
 /* Message resource defintions */
-#define BLOCK 3
-#define FILE 1
-#define FOLDER 2
-#define SERVER 4
+#define BACS_BLOCK 3
+#define BACS_FILE 1
+#define BACS_FOLDER 2
+#define BACS_SERVER 4
 
 /* Message type definitions */
-#define REQUEST 1
-#define RESPONSE 2
-#define ERROR 3
+#define BACS_REQUEST 1
+#define BACS_RESPONSE 2
+#define BACS_ERROR 3
 
 
 /* Message header size 
@@ -41,7 +41,7 @@
  *  - byte 1: Message resource
  *  - byte 2: Message type
  */
-#define HEADER_SIZE 3
+#define BACS_HEADER_SIZE 3
 
 
 
@@ -56,6 +56,9 @@
  * ================= */ 
 void create_msg_get_servers_request(char **msg, uint32_t *msg_len);
 void create_msg_get_servers_response(char **msg, uint32_t *msg_len);
+void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
+                                   char **msg, uint32_t *msg_len);
+void create_msg_post_block_response(uuid_t uuid, char **msg, uint32_t *msg_len);
 void create_msg_post_file_request(char *filename, uint64_t file_size, 
                                   char **msg, uint32_t *msg_len);
 void create_msg_post_file_response(meta_t *file, char **msg, uint32_t *msg_len);
@@ -68,6 +71,9 @@ const char *get_header_resource_string(uint8_t resource);
 uint8_t get_header_type(char *msg);
 const char *get_header_type_string(uint8_t resource);
 
+void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
+                                  char **content);
+void parse_msg_post_block_response(char *msg, uuid_t *uuid);
 void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size);
 void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids);
 
@@ -77,6 +83,8 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
  * DEBUGGING FUNCTIONS *
  * =================== */ 
 void print_msg(char *msg);
+void print_msg_post_block_request(char *msg);
+void print_msg_post_block_response(char *msg);
 void print_msg_post_file_request(char *msg);
 void print_msg_post_file_response(char *msg);
 
