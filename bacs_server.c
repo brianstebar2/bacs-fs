@@ -10,15 +10,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
+#include "blocks.h"
 #include "file_metadata.h"
+#include "messages.h"
 
-
-/* Debugging includdes */
+/* Debugging includes */
+#include <errno.h>
 #include <inttypes.h>
+#include <string.h>
 #include <uuid/uuid.h>
 #include "common.h"
-#include "messages.h"
+
+
 
 
 int main(int argc, char **argv)
@@ -36,10 +42,16 @@ int main(int argc, char **argv)
   fs_metadata->status = READY;
 
   /* Initialize server block storage */
-  server_blocks = NULL;
-  server_blocks_num = 0;
+  all_blocks = NULL;
+  all_blocks_num = 0;
+  block_data_path = DEFAULT_DATA_PATH;
 
+  /* If data folder for blocks doesn't exist, create it */
+  mkdir(block_data_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
+  /* TODO: read in blocks already stored */
+
+  /* TODO: retrieve metadata from master */
 
 
 
@@ -50,7 +62,7 @@ int main(int argc, char **argv)
 
   /* Debugging crap... */
   /* Client: Send a request to upload a new file */
-  create_msg_post_file_request("/awesome/bad/c.txt", 4000, &msg, &len);  
+  create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
   printf("Client: Sending message (%d bytes): \n", len);
   print_msg(msg);
   printf("\n");
@@ -77,6 +89,7 @@ int main(int argc, char **argv)
     char *block_content;
     uuid_t block_uuid;
     char block[DEFAULT_BLOCK_SIZE] = {0};
+    block_t *block_ptr;
     
     /* Client: send a block */
     sprintf(block, "Block #%d content", i);
@@ -89,6 +102,10 @@ int main(int argc, char **argv)
     parse_msg_post_block_request(msg, &block_uuid, &block_size, &block_content);
     free(msg);
     /* Populate block content */
+    block_ptr = find_block(block_uuid);
+    populate_block(block_ptr, block_content, block_size);
+    /* TODO: Server updates file status if all blocks in the file are ready */
+
     printf("SERVER FILE META\n");
     print_file_meta(file_meta);
 
@@ -99,6 +116,24 @@ int main(int argc, char **argv)
     free(msg);
   }
 
+  /* Client: create a new folder */
+  create_msg_post_folder_request("/awesome/cool", &msg, &len);
+  printf("Client: Sending message: (%d bytes): \n", len);
+  print_msg(msg);
+
+  /* Server: create the new folder */
+  parse_msg_post_folder_request(msg, &dirname);
+  free(msg);
+  file_meta = add_folder(fs_metadata, dirname);
+  printf("\nSERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
+  /* Server: send response indicicating success */
+  create_msg_post_folder_response(&msg, &len);
+  printf("Server: Sending message (%d bytes):\n", len);
+  print_msg(msg);
+  free(msg);
 
   /*file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
   printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);

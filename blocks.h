@@ -19,11 +19,16 @@
 uint64_t all_blocks_num;
 block_t *all_blocks;
 
+/* Block file path information */
+const char *block_data_path;
+
 
 
 block_t *create_block_t();
 void destroy_block_t(block_t *target);
-void populate_block(block_t *target, char *content);
+block_t *find_block(uuid_t uuid);
+char *generate_block_filename(block_t *target);
+void populate_block(block_t *target, char *content, int32_t content_size);
 
 
 

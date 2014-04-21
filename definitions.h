@@ -21,7 +21,7 @@
  * =================================== */ 
 #define DEFAULT_REPLICAS 3
 #define DEFAULT_BLOCK_SIZE 1024 /* bytes */
-#define DEFAULT_DATA_PATH "~/bacs_data"
+#define DEFAULT_DATA_PATH "bacs_data"
 
 
 
@@ -55,9 +55,10 @@ typedef struct block_s {
   uint8_t status;      /* Can be any of the status constants */
   uint32_t checksum;   /* Checksum for verifying block data */
 
-  /* LINKED LIST POINTERS (doubly-linked) */
-  struct block_s next;
-  struct block_s prev;
+  /* TREE AND LINKED LIST POINTERS */
+  struct meta_s *parent;  /* File to which this block belongs */
+  struct block_s *next;   /* Next block in global block list */
+  struct block_s *prev;   /* Previos block in global block list */
 } block_t;
 
 

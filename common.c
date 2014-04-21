@@ -158,8 +158,8 @@ char *uuid_str(uuid_t uuid)
   char *tmp;
 
   /* Allocate the memory for the string and zero it out */
-  char *result = malloc(sizeof(char)*37);
-  if(result == NULL) die_with_error("uuid_str - malloc failed");
+  char *result = calloc(37, sizeof(char));
+  if(result == NULL) die_with_error("uuid_str - calloc failed");
   memset(result, 0, 37);
 
   /* Build the result string (each byte in the uuid_t is represented as two

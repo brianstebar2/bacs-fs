@@ -97,6 +97,54 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
 
 
 /**
+ * add_folder
+ *
+ * Adds the specified folder to the specified file metadata tree; creates all
+ * folders in the path as nessary; returns a pointer to the new folder's meta_t 
+ * structure
+ *
+ * root      - the root of the metadata tree that will contain the new metadata
+ * path      - the target fully-qualified path (including the file's name)
+ */
+meta_t *add_folder(meta_t *root, char *path)
+{
+  char *lower_path, **path_parts;
+  meta_t *current_folder = root, *subfolder;
+  uint64_t i = 0;
+
+  /* Make sure path starts with a '/' */
+  if(strncmp(path, "/", 1) != 0) 
+    die_with_error("add_folder - invalid path specified");
+
+  /* If the folder already exists, we have nothing to do */
+  subfolder = find_meta(current_folder, path, BACS_FOLDER_TYPE);
+  if(subfolder != NULL) return subfolder;
+
+  /* Parse full path contained in name */
+  lower_path = strtolower(path);
+  path_parts = str_split(lower_path, '/');
+
+  /* If necessary, navigate to correct folder within metadata */
+  while(path_parts[i]) {
+    subfolder = find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE);
+
+    /* If the target folder doesn't exist, create it */
+    if(subfolder == NULL) 
+      subfolder = create_subfolder(current_folder, path_parts[i]);
+    
+    /* Switch into target folder */
+    current_folder = subfolder;
+
+    /* Clean up after str_split */
+    free(path_parts[i]);
+    i++;
+  }
+
+  return subfolder;
+}
+
+
+/**
  * add_to_meta_tree
  *
  * Adds 'child' as a child to 'parent' in the file tree; updates all the 
@@ -166,7 +214,7 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
                     uint8_t replicas)
 {
   meta_t *new_file = create_meta_t();
-  uint64_t i;
+  uint64_t i, bytes_left;
 
   /* Populate the fields in the new file's metadata */
   new_file->type = BACS_FILE_TYPE;
@@ -183,8 +231,15 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
   if(new_file->blocks == NULL) die_with_error("create_file - malloc failed");
 
   /* Generate blocks for this file */
+  bytes_left = size;
   for(i = 0; i < new_file->num_blocks; i++) {
     new_file->blocks[i] = create_block_t();
+    
+    /* Populate block fields */
+    new_file->blocks[i]->parent = new_file;
+    new_file->blocks[i]->size = 
+      (bytes_left > DEFAULT_BLOCK_SIZE) ? DEFAULT_BLOCK_SIZE : bytes_left;
+    bytes_left = bytes_left - new_file->blocks[i]->size;
   }
 
   /* Add file to parent's file list */
@@ -372,7 +427,8 @@ void print_file_meta(meta_t *file_meta)
   for(i=0; i < file_meta->num_blocks; i++) {
     block_t *block = file_meta->blocks[i];
     char *uuid_string = uuid_str(block->uuid);
-    printf(" - %s: %s\n", uuid_string, status_string(block->status));
+    printf(" - %s: %s, %d bytes\n", uuid_string, status_string(block->status),
+      block->size);
     free(uuid_string);
   }
 
@@ -405,7 +461,7 @@ void print_meta_tree(meta_t *folder, const char *prefix)
   /* Print out this folder's subfolders */
   ptr = folder->subfolders;
   while(ptr != NULL) {
-    print_meta_tree(folder->subfolders, new_prefix);
+    print_meta_tree(ptr, new_prefix);
     ptr = ptr->next;
   }
 

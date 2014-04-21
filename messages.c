@@ -258,8 +258,8 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
 /**
  * create_msg_post_block_response
  *
- * Generates a message response string containing signifying that a block was
- * successfully uploaded
+ * Generates a message response string signifying that a block was successfully 
+ * uploaded
  *
  * uuid     - UUID of the block that was successfully uploaded
  * msg      - (return val) pointer where the message string will be stored
@@ -350,7 +350,7 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
 /**
  * create_msg_post_file_response
  *
- * Generates a  response string containing a list of block IDs in the file
+ * Generates a response string containing a list of block IDs in the file
  *
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
@@ -390,6 +390,85 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint32_t *msg_len)
   }
 
   /* Return the finished message */
+  *msg = string;
+}
+
+
+
+/**
+ * create_msg_post_folder_request
+ *
+ * Generates a message string submitting the name for a new folder
+ *
+ * foldername - null-terminated string containing the path of the new folder
+ * msg        - (return val) pointer where the message string will be stored
+ * msg_len    - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_post_folder_request(char *foldername, char **msg, 
+                                    uint32_t *msg_len)
+{
+  char *string;
+  uint32_t index;
+  
+  /* Calculate the number of bytes in this message */
+  *msg_len = BACS_HEADER_SIZE +
+    sizeof(uint16_t) +  /* length of folder's name */
+    strlen(foldername); /* Folder's name */
+
+  /* Allocate memory for the message string and initialize it */
+  string = calloc(*msg_len, sizeof(char));
+  if(string == NULL) 
+    die_with_error("create_msg_post_folder_request - calloc failed");
+  memset(string, 0, *msg_len * sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(POST, BACS_FOLDER, BACS_REQUEST, string);
+
+  /* Add the folder's name to the message after the header */
+  index = BACS_HEADER_SIZE;
+  *(uint16_t *)&string[index] = (uint16_t)strlen(foldername);
+  index = index + sizeof(uint16_t);
+  strncpy(&string[index], foldername, strlen(foldername));
+
+  /* Return the finished message */
+  *msg = string;
+}
+
+
+
+/**
+ * create_msg_post_folder_response
+ *
+ * Generates a message response string signifying that a folder was successfully 
+ * created
+ *
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_post_folder_response(char **msg, uint32_t *msg_len)
+{
+  char *string;
+  
+  /* Calculate the number of bytes in this message */
+  uint32_t num_chars = BACS_HEADER_SIZE;
+
+  /* Allocate memory for the message string */
+  string = calloc(num_chars, sizeof(char));
+  if(string == NULL) 
+    die_with_error("create_msg_post_folder_response - calloc failed");
+  memset(string, 0, num_chars*sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(POST, BACS_FOLDER, BACS_RESPONSE, string);
+
+  /* Set the return values */
+  *msg_len = num_chars;
   *msg = string;
 }
 
@@ -780,6 +859,67 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
 
 
 /**
+ * parse_msg_post_folder_request
+ *
+ * Extracts the name of the new folder from the request
+ *
+ * msg        - the message to parse
+ * foldername - (return val) pointer to a string where the new folder's name 
+ *              should be stored
+ * 
+ * NOTE: this method allocates memory for 'foldername'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void parse_msg_post_folder_request(char *msg, char **foldername)
+{
+  char *string;
+  uint16_t string_len;
+  uint32_t index;
+
+  /* Do a sanity check to make sure we got the expected type of message */
+  if(get_header_resource(msg) != BACS_FOLDER || 
+     get_header_action(msg) != POST ||
+     get_header_type(msg) != BACS_REQUEST)
+    die_with_error("parse_msg_post_folder_request - invalid message header");
+
+  /* Extract the length of the folder name string from the message */
+  index = BACS_HEADER_SIZE;
+  string_len = *(uint16_t *)&msg[BACS_HEADER_SIZE];
+
+  /* Allocate memory for the folder name string; Add one more char to the end 
+   * for a null terminator */
+  string = calloc(string_len + 1, sizeof(char));
+  if(string == NULL) 
+    die_with_error("parse_msg_post_folder_request - calloc failed");
+  memset(string, 0, (string_len + 1) * sizeof(char));
+
+  /* Extract folder name from message */
+  index = index + sizeof(uint16_t);
+  strncpy(string, &msg[index], string_len);
+  *foldername = string;
+}
+
+
+
+/**
+ * parse_msg_post_folder_response
+ *
+ * Checks the headers from the response
+ *
+ * msg     - the message to parse
+ */
+void parse_msg_post_folder_response(char *msg)
+{
+  /* Do a sanity check to make sure we got the expected type of message */
+  if(get_header_resource(msg) != BACS_FOLDER || 
+     get_header_action(msg) != POST ||
+     get_header_type(msg) != BACS_RESPONSE)
+    die_with_error("parse_msg_post_folder_response - invalid message header");
+}
+
+
+
+/**
  * print_msg
  *
  * DEBUGGING; Prints out the specified message in a human-readable format
@@ -817,6 +957,7 @@ void print_msg(char *msg)
         case BACS_FOLDER:  
           switch(get_header_action(msg)) {
             case GET:  print_msg_get_folder_meta_request(msg); break;
+            case POST: print_msg_post_folder_request(msg); break;
             default:    printf("INVALID ACTION");
           }
 
@@ -852,6 +993,7 @@ void print_msg(char *msg)
         case BACS_FOLDER:  
           switch(get_header_action(msg)) {
             case GET:  print_msg_get_folder_meta_response(msg); break;
+            case POST: print_msg_post_folder_response(msg); break;
             default:    printf("INVALID ACTION");
           }
 
@@ -990,4 +1132,34 @@ void print_msg_post_file_response(char *msg)
   }
   
   free(uuids);
+}
+
+
+
+/**
+ * print_msg_post_folder_request
+ *
+ * DEBUGGING; Prints out contents of POST BACS_FOLDER request in human-readable 
+ * format
+ */
+void print_msg_post_folder_request(char *msg)
+{
+  char *foldername;
+  parse_msg_post_folder_request(msg, &foldername);
+  printf("%s", foldername);
+  free(foldername);
+}
+
+
+
+/**
+ * print_msg_post_folder_response
+ *
+ * DEBUGGING; Prints out contents of POST BACS_FOLDER response in human-readable 
+ * format
+ */
+void print_msg_post_folder_response(char *msg)
+{
+  parse_msg_post_folder_response(msg);
+  printf("SUCCESS");
 }

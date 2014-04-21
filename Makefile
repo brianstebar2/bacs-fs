@@ -34,3 +34,4 @@ bacs_client: $(COMMON_OBJ) $(CLIENT_OBJ)
 
 clean:
 	rm -f $(EXECS) *.o
+	rm -rf bacs_data
