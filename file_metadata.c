@@ -47,6 +47,10 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
   if(strncmp(path, "/", 1) != 0) 
     die_with_error("add_file_meta - invalid path specified");
 
+  /* Make sure we the file doesn't already exist */
+  if(find_meta(current_folder, path, BACS_FILE_TYPE) != NULL)
+    die_with_error("add_file_meta - file already exists");
+
   /* Parse full path contained in name */
   lower_path = strtolower(path);
   path_parts = str_split(lower_path, '/');
@@ -72,10 +76,6 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
     /* When this loop exits, path_parts[i] will point at the filename token,
        and current_folder will point to the destination folder */
   }
-
-  /* Make sure we the file doesn't already exist */
-  if(find_child_meta(current_folder, path_parts[i], BACS_FILE_TYPE) != NULL)
-    die_with_error("add_file_meta - file already exists");
 
   /* Create metadata for this file */
   new_file = create_file(current_folder, path_parts[i], size, replicas);
@@ -129,18 +129,17 @@ void add_to_meta_tree(meta_t *parent, meta_t *child)
   }
 
   /* Update bookeeping data of all parents in the tree */
+  if(child->type == BACS_FOLDER_TYPE) { 
+    parent->num_subfolders++; 
+  }
+  else { 
+    parent->num_files++;
+    parent->size = parent->size + child->size;
+  }
+
   tmp = parent;
   while(tmp) {
     tmp->version = version;
-    
-    if(child->type == BACS_FOLDER_TYPE) { 
-      tmp->num_subfolders++; 
-    }
-    else { 
-      tmp->num_files++;
-      tmp->size = tmp->size + child->size;
-    }
-
     tmp = tmp->parent;
   }
 }
@@ -308,6 +307,76 @@ meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
   }
 
   return result;
+}
+
+
+
+/**
+ * find_meta
+ *
+ * Returns a pointer to the meta_t of the target subfolder/file within the
+ * 'folder' or any of its children if it exists; Returns NULL otherwise
+ */
+meta_t *find_meta(meta_t *folder, char *path, uint8_t target_type)
+{
+  int i = 0;
+  meta_t *current_meta = folder;
+  char *lower_path, **path_parts;
+
+  /* Parse full path contained in name */
+  lower_path = strtolower(path);
+  path_parts = str_split(lower_path, '/');
+
+  /* If necessary, navigate to correct folder within metadata; to tell if
+     path_parts[i] is a file or folder name, check the next index of path_parts
+     for a null terminator */
+  while(path_parts[i+1]) {
+    if(current_meta != NULL) {
+      current_meta = find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE);
+    }
+
+    /* Clean up after str_split */
+    free(path_parts[i]);
+    i++;
+
+    /* When this loop exits, path_parts[i] will point at the last token,
+       and current_meta will point to the folder containing the last token */
+  }
+
+  /* Check for the last token based on the target type */
+  if(current_meta != NULL) {
+    current_meta = find_child_meta(current_meta, path_parts[i], target_type);
+  }
+
+  free(path_parts[i]);
+  return current_meta;
+}
+
+
+
+/**
+ * print_file_meta
+ *
+ * DEBUGGING; Prints out a representation of the specified file tree
+ */
+void print_file_meta(meta_t *file_meta)
+{
+  uint64_t i;
+
+  /* Print the file's metadata */
+  printf("v%d:%s - %s, %" PRIu64 " bytes, %" PRIu64 " blocks, %d replicas\n",
+    file_meta->version, file_meta->name, status_string(file_meta->status), 
+    file_meta->size, file_meta->num_blocks, file_meta->replicas);
+
+  /* Print status of each block in the file */
+  for(i=0; i < file_meta->num_blocks; i++) {
+    block_t *block = file_meta->blocks[i];
+    char *uuid_string = uuid_str(block->uuid);
+    printf(" - %s: %s\n", uuid_string, status_string(block->status));
+    free(uuid_string);
+  }
+
+  printf("\n");
 }
 
 

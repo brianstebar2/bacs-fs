@@ -45,24 +45,30 @@ typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
 
 
 
-/* ======================== *
- * BLOCK METADATA STRUCTURE *
- * ======================== */ 
+/* ========================= *
+ * BLOCK METADATA STRUCTURES *
+ * ========================= */ 
 typedef struct block_s {
+  /* BLOCK METADATA */
   uuid_t uuid;         /* Identifer for this block (and its filename) */
   uint32_t size;       /* Bytes of data in this block */
   uint8_t status;      /* Can be any of the status constants */
   uint32_t checksum;   /* Checksum for verifying block data */
+
+  /* LINKED LIST POINTERS (doubly-linked) */
+  struct block_s next;
+  struct block_s prev;
 } block_t;
 
 
 
- /* ============================== *
-  * FILE SYSTEM METADATA STRUCTURE *
-  * ============================== */ 
+ /* =============================== *
+  * FILE SYSTEM METADATA STRUCTURES *
+  * =============================== */ 
+/* FULL METADATA STRUCTURE (for use by servers only) */
 typedef struct meta_s {
   /* COMMON METADATA */
-  uint8_t type;           /* Can be FILE or FOLDER */
+  uint8_t type;           /* Can be BACS_FILE_TYPE or BACS_FOLDER_TYPE */
   uint8_t status;         /* Can be any of the status constants */
   char *name;             /* Name of the file or folder */
   uint64_t size;          /* Bytes in file or folder */
@@ -83,6 +89,14 @@ typedef struct meta_s {
   struct meta_s *parent;  /* Parent folder (NULL if root) */
   struct meta_s *next;    /* Next sibling in this folder */
 } meta_t;
+
+/* SIMPLIFIED METADATA STRUCTURE (for use during message passing by both clients 
+ * and servers) */
+typedef struct basic_meta_s {
+  uint8_t type;           /* Can be BACS_FILE_TYPE or BACS_FOLDER_TYPE */
+  char *name;             /* Name of the file or folder */
+  uint64_t size;          /* Bytes in file or folder */
+} basic_meta_t;
 
 
 

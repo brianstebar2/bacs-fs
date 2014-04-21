@@ -37,6 +37,8 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
 meta_t *create_meta_t();
 meta_t *create_subfolder(meta_t *folder, const char *name);
 meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type);
+meta_t *find_meta(meta_t *folder, char *path, uint8_t target_type);
+void print_file_meta(meta_t *file_meta);
 void print_meta_tree(meta_t *root, const char *prefix);
 
 

@@ -21,6 +21,23 @@
 
 
 /**
+ * meta_type_string
+ *
+ * Translates meta type codes into string constants
+ */
+const char *meta_type_string(uint8_t status)
+{
+  switch(status) {
+    case NOTHING:           return "NOTHING"; break;
+    case BACS_FILE_TYPE:    return "FILE"; break;
+    case BACS_FOLDER_TYPE:  return "FOLDER"; break;
+    default:                return "UNKNOWN";
+  } 
+}
+
+
+
+/**
  * status_string
  *
  * Translates status codes into string constants

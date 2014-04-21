@@ -20,6 +20,136 @@
 
 
 /**
+ * create_msg_get_folder_meta_request
+ *
+ * Generates a message string requesting the list of files, folders, and
+ * associated metadata within the specified folder
+ *
+ * dirname  - null-terminated string containing the fully-qualified path of the
+ *            target directory
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_get_folder_meta_request(char *dirname, char **msg, 
+                                        uint32_t *msg_len)
+{
+  char *string;
+  int index;
+
+  /* Calculate the number of bytes in this message */
+  uint32_t num_chars = BACS_HEADER_SIZE +
+    sizeof(uint16_t) +  /* folder name length */
+    strlen(dirname);        /* Target folder name */
+
+  /* Allocate memory for the message string */
+  string = calloc(num_chars, sizeof(char));
+  if(string == NULL) 
+    die_with_error("create_msg_get_dir_meta_request - calloc failed");
+  memset(string, 0, num_chars*sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(GET, BACS_FOLDER, BACS_REQUEST, string);
+
+  /* Add the directory name to the message after the header */
+  index = BACS_HEADER_SIZE;
+  *(uint16_t *)&string[index] = (uint16_t)strlen(dirname);
+  index = index + sizeof(uint16_t);
+  strncpy(&string[index], dirname, strlen(dirname));
+
+  /* Set the return values */
+  *msg_len = num_chars;
+  *msg = string;
+}
+
+
+
+/**
+ * create_msg_get_folder_meta_response
+ *
+ * Generates a message response string include the list basic_meta_t's for both
+ * the files and folders contained in the specified meta_t
+ *
+ * folder   - meta_t for the folder containing the metadata to send
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
+                                         uint32_t *msg_len)
+{
+  char *string;
+  int index, i;
+  meta_t *current;
+
+  /* Calculate the number of bytes in the message */
+  uint32_t num_chars = BACS_HEADER_SIZE +
+    sizeof(uint32_t);  /* Number of basic_meta_t's in the message */
+
+  /* Add the bytes needed for the subfolder and file metadata */
+  for(i=0; i<2; i++) {
+    current = (i == 0) ? folder->subfolders : folder->files;
+
+    while(current != NULL) {
+      num_chars = num_chars +
+        sizeof(uint8_t) +       /* Meta type information */
+        sizeof(uint16_t) +      /* File/folder name length */
+        strlen(current->name) + /* File/folder name */
+        sizeof(uint64_t);       /* Bytes contained in file/folder */
+      current = current->next;
+    }
+  }
+
+  /* Allocate memory for the message */
+  string = calloc(num_chars, sizeof(char));
+  if(string == NULL) 
+    die_with_error("create_msg_get_folder_meta_response - calloc failed");
+  memset(string, 0, num_chars*sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(GET, BACS_FOLDER, BACS_RESPONSE, string);
+
+  /* Add the count of basic_meta_t's to the message */
+  index = BACS_HEADER_SIZE;
+  *(uint32_t *)&string[index] = folder->num_files + folder->num_subfolders;
+  index = index + sizeof(uint32_t);
+
+  /* Add each subfolder's and file's metadata to the message */
+  for(i=0; i<2; i++) {
+    current = (i == 0) ? folder->subfolders : folder->files;
+
+    while(current != NULL) {
+      /* Add the meta_t's type */
+      *(uint8_t *)&string[index] = current->type;
+      index = index + sizeof(uint8_t);
+
+      /* Add the meta_t's name */
+      *(uint16_t *)&string[index] = strlen(current->name);
+      index = index + sizeof(uint16_t);
+      strncpy(&string[index], current->name, strlen(current->name));
+      index = index + strlen(current->name);
+
+      /* Add the meta_t's size */
+      *(uint64_t *)&string[index] = current->size;
+      index = index + sizeof(uint64_t);
+
+      /* Advance to next meta */
+      current = current->next;
+    }
+  }
+
+  /* Set the return values */
+  *msg_len = num_chars;
+  *msg = string;
+}
+
+
+
+/**
  * create_msg_get_servers_request
  *
  * Generates a message string requesting the list of servers in the cluster
@@ -172,7 +302,7 @@ void create_msg_post_block_response(uuid_t uuid, char **msg, uint32_t *msg_len)
  *
  * Generates a message string submitting the metadata for a new file
  *
- * filename  - string containing the filename of the new file
+ * filename  - null-terminated string containing the filename of the new file
  * file_size - number of bytes in the new file
  * msg       - (return val) pointer where the message string will be stored
  * msg_len   - (return val) pointer to size of 'msg' string
@@ -377,6 +507,109 @@ const char *get_header_type_string(uint8_t type)
 
 
 /**
+ * parse_msg_get_folder_meta_request
+ *
+ * Extracts the folder name from the request
+ *
+ * msg      - the message to parse
+ * dirname  - (return val) pointer to string where folder name should be stored
+ * 
+ * NOTE: this method allocates memory for 'dirname'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void parse_msg_get_folder_meta_request(char *msg, char **dirname)
+{
+  char *string;
+  uint16_t string_len;
+  uint32_t index;
+
+  /* Do a sanity check to make sure we got the expected type of message */
+  if(get_header_resource(msg) != BACS_FOLDER || 
+     get_header_action(msg) != GET ||
+     get_header_type(msg) != BACS_REQUEST)
+    die_with_error("parse_msg_get_folder_meta_request - invalid message header");
+
+  /* Extract the length of the dirname string from the message */
+  index = BACS_HEADER_SIZE;
+  string_len = *(uint16_t *)&msg[BACS_HEADER_SIZE];
+
+  /* Allocate memory for the dirname string; Add one more char to the end for a 
+   * null terminator */
+  string = calloc(string_len + 1, sizeof(char));
+  if(string == NULL) 
+    die_with_error("parse_msg_get_folder_meta_request - calloc failed");
+  memset(string, 0, (string_len + 1) * sizeof(char));
+
+  /* Extract filename from message */
+  index = index + sizeof(uint16_t);
+  strncpy(string, &msg[index], string_len);
+  *dirname = string;
+}
+
+
+
+/**
+ * parse_msg_get_folder_meta_response
+ *
+ * Extracts the basic_meta_t's from the response
+ *
+ * msg       - the message to parse
+ * metas     - (return val) pointer to destination array of basic_meta_t's
+ * num_metas - (return val) pointer to count of basic_meta_t's in array
+ * 
+ * NOTE: this method allocates memory for 'metas' and the 'name' within each
+ *       basic_meta_t; it is the responsiblity of the caller to free the 
+ *       memoryallocation
+ */
+void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas, 
+                                        uint32_t *num_metas)
+{
+  basic_meta_t *basic_metas;
+  uint16_t string_len;
+  uint32_t index, i;
+
+  /* Do a sanity check to make sure we got the expected type of message */
+  if(get_header_resource(msg) != BACS_FOLDER || 
+     get_header_action(msg) != GET ||
+     get_header_type(msg) != BACS_RESPONSE)
+    die_with_error("parse_msg_get_folder_meta_response - invalid message header");
+
+  /* Extract the number of metas from the message */
+  index = BACS_HEADER_SIZE;
+  *num_metas = *(uint32_t *)&msg[BACS_HEADER_SIZE];
+
+  /* Allocate memory for the basic_meta_t's */
+  basic_metas = calloc(*num_metas, sizeof(basic_meta_t));
+  if(basic_metas == NULL) 
+    die_with_error("parse_msg_get_folder_meta_response - calloc failed");
+  memset(basic_metas, 0, *num_metas * sizeof(basic_meta_t));
+
+  /* Extract each basic_meta_t from message */
+  index = index + sizeof(uint32_t);
+  for(i=0; i < *num_metas; i++) {
+    /* Extract meta type */
+    basic_metas[i].type = *(uint8_t *)&msg[index];
+    index = index + sizeof(uint8_t);
+
+    /* Extract meta name */
+    string_len = *(uint16_t *)&msg[index];
+    index = index + sizeof(uint16_t);
+    basic_metas[i].name = calloc(string_len + 1, sizeof(char));
+    memset(basic_metas[i].name, 0, (string_len + 1) * sizeof(char));
+    strncpy(basic_metas[i].name, &msg[index], string_len);
+    index = index + string_len;
+
+    /* Extract meta size */
+    basic_metas[i].size = *(uint64_t *)&msg[index];
+    index = index + sizeof(uint64_t);
+  }
+
+  *metas = basic_metas;
+}
+
+
+
+/**
  * parse_msg_post_block_request
  *
  * Extracts the UUID, content size, and content of the block from the request
@@ -560,7 +793,6 @@ void print_msg(char *msg)
 
   switch(get_header_type(msg)) {
     case BACS_REQUEST: 
-
       switch(get_header_resource(msg)) {
         
         /* BLOCK requests */
@@ -581,13 +813,21 @@ void print_msg(char *msg)
 
           break;
 
+        /* FOLDER requests */
+        case BACS_FOLDER:  
+          switch(get_header_action(msg)) {
+            case GET:  print_msg_get_folder_meta_request(msg); break;
+            default:    printf("INVALID ACTION");
+          }
+
+          break;
+
         default: printf("UNKNOWN RESOURCE");
       }
 
       break;
 
     case BACS_RESPONSE:
-      
       switch(get_header_resource(msg)) {
         
         /* BLOCK responses */
@@ -608,6 +848,16 @@ void print_msg(char *msg)
 
           break;
 
+        /* FOLDER responses */
+        case BACS_FOLDER:  
+          switch(get_header_action(msg)) {
+            case GET:  print_msg_get_folder_meta_response(msg); break;
+            default:    printf("INVALID ACTION");
+          }
+
+          break;
+
+
         default: printf("UNKNOWN RESOURCE");
       }
 
@@ -616,6 +866,45 @@ void print_msg(char *msg)
     default: printf("UNKNOWN MESSAGE TYPE");
   }
 
+  printf("\n");
+}
+
+
+
+/**
+ * print_msg_get_folder_meta_request
+ *
+ * DEBUGGING; Prints out contents of GET FOLDER_META request in human-readable 
+ * format
+ */
+void print_msg_get_folder_meta_request(char *msg)
+{
+  char *dirname;
+  parse_msg_get_folder_meta_request(msg, &dirname);
+  printf("%s\n", dirname);
+  free(dirname);
+}
+
+
+
+/**
+ * print_msg_get_folder_meta_response
+ *
+ * DEBUGGING; Prints out contents of GET FOLDER_META response in human-readable 
+ * format
+ */
+void print_msg_get_folder_meta_response(char *msg)
+{
+  uint32_t num_metas, i;
+  basic_meta_t *metas;
+  parse_msg_get_folder_meta_response(msg, &metas, &num_metas);
+  printf("%d basic_meta_t's:", num_metas);
+  for(i=0; i < num_metas; i++) {
+    printf("\n - %s: '%s' (%" PRIu64 " bytes)", 
+      meta_type_string(metas[i].type), metas[i].name, metas[i].size);
+      free(metas[i].name);
+  }
+  free(metas);
   printf("\n");
 }
 

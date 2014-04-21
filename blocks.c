@@ -22,7 +22,7 @@ block_t *create_block_t()
 {
   block_t *result;
 
-  /* Allocate necessary memory  */
+  /* Allocate necessary memory */
   result = malloc(sizeof(block_t));
   if(result == NULL) die_with_error("create_block_t - malloc failed");
 
@@ -32,6 +32,13 @@ block_t *create_block_t()
   result->status = NEW;
   result->checksum = 0;
 
+  /* Add block to server block list */
+  result->next = all_blocks;
+  result->prev = NULL;
+  all_blocks->prev = result;
+  all_blocks = result;
+  all_blocks_num++;
+
   return result;
 }
 
@@ -40,10 +47,32 @@ block_t *create_block_t()
 /**
  * destroy_block_t
  *
- * Destroys and frees all memory in the target block_t
+ * Destroys and frees all memory in the target block_t; Deletes the block's 
+ * backing file
  */
 void destroy_block_t(block_t *target)
 {
+  block_t *prev = target->prev;
+  block_t *next = target->next;
+
+  /* Delete block file */
+
+  /* Remove block from block list */
+  if(prev != NULL) prev->next = next;
+  if(next != NULL) next->prev = prev;
+
   /* Nuke the target */
   free(target);
+}
+
+
+
+/**
+ * populate_block()
+ *
+ * Writes the content to a block and marks it as ready
+ */
+void populate_block(block_t *target, char *content)
+{
+
 }

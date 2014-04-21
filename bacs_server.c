@@ -24,7 +24,7 @@
 int main(int argc, char **argv)
 {
   uint64_t file_size, num_uuids;
-  char *msg, *filename;
+  char *msg, *dirname, *filename;
   uint32_t len, i;
   meta_t *file_meta;
   uuid_t *uuids;
@@ -34,6 +34,10 @@ int main(int argc, char **argv)
   /* Initialize the file metadata tree */
   fs_metadata = create_meta_t();
   fs_metadata->status = READY;
+
+  /* Initialize server block storage */
+  server_blocks = NULL;
+  server_blocks_num = 0;
 
 
 
@@ -84,8 +88,9 @@ int main(int argc, char **argv)
     /* Server: write block and update block metadata */
     parse_msg_post_block_request(msg, &block_uuid, &block_size, &block_content);
     free(msg);
-    /* printf("SERVER FILE BLOCK META\n"); */
-    /* print_file_block_metas(file_meta); */
+    /* Populate block content */
+    printf("SERVER FILE META\n");
+    print_file_meta(file_meta);
 
     /* Server: send response indicicating success */
     create_msg_post_block_response(uuids[i], &msg, &len);
@@ -93,18 +98,53 @@ int main(int argc, char **argv)
     print_msg(msg);
     free(msg);
   }
-  
-  /*add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
-  printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", num_uuids);
+
+
+  /*file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
+  printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
   printf("[ ");
-  for(i = 0; i < num_uuids; i++) {
-    printf("%s ", uuid_str(uuids[i]));
+  for(i = 0; i < file_meta->num_blocks; i++) {
+    printf("%s ", uuid_str(file_meta->blocks[i]->uuid));
   }
   printf("]\n");
 
   printf("\nSERVER META TREE\n");
   print_meta_tree(fs_metadata, "");
   printf("\n");*/
+
+  /* Have a look at the directory /awesome contents */
+  /* Client: Send a request to the server for folder metadata */
+  /*create_msg_get_folder_meta_request("/awesome", &msg, &len);
+  printf("Client: Sending message (%d bytes):\n", len);
+  print_msg(msg);*/
+
+  /* Server: send response containing metadata for folder */
+  /*parse_msg_get_folder_meta_request(msg, &dirname);
+  free(msg);
+  file_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
+  free(dirname);
+  create_msg_get_folder_meta_response(file_meta, &msg, &len);
+  printf("Server: Sending message (%d bytes):\n", len);
+  print_msg(msg);
+  free(msg);*/
+  
+  /* Have a look at the directory /awesome/bad contents */
+  /* Client: Send a request to the server for folder metadata */
+  /*create_msg_get_folder_meta_request("/awesome/bad", &msg, &len);
+  printf("Client: Sending message (%d bytes):\n", len);
+  print_msg(msg);*/
+
+  /* Server: send response containing metadata for folder */
+  /*parse_msg_get_folder_meta_request(msg, &dirname);
+  free(msg);
+  file_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
+  free(dirname);
+  create_msg_get_folder_meta_response(file_meta, &msg, &len);
+  printf("Server: Sending message (%d bytes):\n", len);
+  print_msg(msg);
+  free(msg);*/
+
+
 
 
   
