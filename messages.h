@@ -88,6 +88,15 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
 void parse_msg_post_folder_response(char *msg);
 
 
+
+/* ================ *
+ * HELPER FUNCTIONS *
+ * ================ */ 
+void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
+                             void *element, uint32_t element_len, char **msg, 
+                             uint32_t *msg_len);
+
+
 /* =================== *
  * DEBUGGING FUNCTIONS *
  * =================== */ 

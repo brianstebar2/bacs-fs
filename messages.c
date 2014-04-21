@@ -36,32 +36,8 @@
 void create_msg_get_folder_meta_request(char *dirname, char **msg, 
                                         uint32_t *msg_len)
 {
-  char *string;
-  int index;
-
-  /* Calculate the number of bytes in this message */
-  uint32_t num_chars = BACS_HEADER_SIZE +
-    sizeof(uint16_t) +  /* folder name length */
-    strlen(dirname);        /* Target folder name */
-
-  /* Allocate memory for the message string */
-  string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_get_dir_meta_request - calloc failed");
-  memset(string, 0, num_chars*sizeof(char));
-
-  /* Slap a header on the message */
-  generate_header(GET, BACS_FOLDER, BACS_REQUEST, string);
-
-  /* Add the directory name to the message after the header */
-  index = BACS_HEADER_SIZE;
-  *(uint16_t *)&string[index] = (uint16_t)strlen(dirname);
-  index = index + sizeof(uint16_t);
-  strncpy(&string[index], dirname, strlen(dirname));
-
-  /* Set the return values */
-  *msg_len = num_chars;
-  *msg = string;
+  msg_with_single_element(GET, BACS_FOLDER, BACS_REQUEST, 
+                          dirname, (uint32_t)strlen(dirname), msg, msg_len);
 }
 
 
@@ -270,29 +246,8 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
  */
 void create_msg_post_block_response(uuid_t uuid, char **msg, uint32_t *msg_len)
 {
-  char *string;
-  int index;
-  
-  /* Calculate the number of bytes in this message */
-  uint32_t num_chars = BACS_HEADER_SIZE +
-    sizeof(uuid_t);   /* Size of UUID */
-
-  /* Allocate memory for the message string */
-  string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_post_block_response - calloc failed");
-  memset(string, 0, num_chars*sizeof(char));
-
-  /* Slap a header on the message */
-  generate_header(POST, BACS_BLOCK, BACS_RESPONSE, string);
-
-  /* Add UUID to string */
-  index = BACS_HEADER_SIZE;
-  uuid_copy(*(uuid_t *)&string[index], uuid);
-
-  /* Set the return values */
-  *msg_len = num_chars;
-  *msg = string;
+  msg_with_single_element(POST, BACS_BLOCK, BACS_RESPONSE, 
+                          uuid, sizeof(uuid_t), msg, msg_len);
 }
 
 
@@ -410,31 +365,8 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint32_t *msg_len)
 void create_msg_post_folder_request(char *foldername, char **msg, 
                                     uint32_t *msg_len)
 {
-  char *string;
-  uint32_t index;
-  
-  /* Calculate the number of bytes in this message */
-  *msg_len = BACS_HEADER_SIZE +
-    sizeof(uint16_t) +  /* length of folder's name */
-    strlen(foldername); /* Folder's name */
-
-  /* Allocate memory for the message string and initialize it */
-  string = calloc(*msg_len, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_post_folder_request - calloc failed");
-  memset(string, 0, *msg_len * sizeof(char));
-
-  /* Slap a header on the message */
-  generate_header(POST, BACS_FOLDER, BACS_REQUEST, string);
-
-  /* Add the folder's name to the message after the header */
-  index = BACS_HEADER_SIZE;
-  *(uint16_t *)&string[index] = (uint16_t)strlen(foldername);
-  index = index + sizeof(uint16_t);
-  strncpy(&string[index], foldername, strlen(foldername));
-
-  /* Return the finished message */
-  *msg = string;
+  msg_with_single_element(POST, BACS_FOLDER, BACS_REQUEST, foldername, 
+                          (uint32_t)strlen(foldername), msg, msg_len);
 }
 
 
@@ -453,23 +385,25 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  */
 void create_msg_post_folder_response(char **msg, uint32_t *msg_len)
 {
-  char *string;
+  // char *string;
   
-  /* Calculate the number of bytes in this message */
-  uint32_t num_chars = BACS_HEADER_SIZE;
+  // /* Calculate the number of bytes in this message */
+  // uint32_t num_chars = BACS_HEADER_SIZE;
 
-  /* Allocate memory for the message string */
-  string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_post_folder_response - calloc failed");
-  memset(string, 0, num_chars*sizeof(char));
+  // /* Allocate memory for the message string */
+  // string = calloc(num_chars, sizeof(char));
+  // if(string == NULL) 
+  //   die_with_error("create_msg_post_folder_response - calloc failed");
+  // memset(string, 0, num_chars*sizeof(char));
 
-  /* Slap a header on the message */
-  generate_header(POST, BACS_FOLDER, BACS_RESPONSE, string);
+  // /* Slap a header on the message */
+  // generate_header(POST, BACS_FOLDER, BACS_RESPONSE, string);
 
-  /* Set the return values */
-  *msg_len = num_chars;
-  *msg = string;
+  // /* Set the return values */
+  // *msg_len = num_chars;
+  // *msg = string;
+  msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
+                          NULL, 0, msg, msg_len);
 }
 
 
@@ -586,6 +520,55 @@ const char *get_header_type_string(uint8_t type)
 
 
 /**
+ * msg_with_single_element
+ *
+ * Populates a message string with the specified headers a single data element
+ *
+ * action      - message action identifier
+ * resource    - target resource for this message
+ * type        - type of message
+ * element     - string containing the data element
+ * element_len - number of bytes the element occupies
+ * msg         - (return val) pointer where the message string will be stored
+ * msg_len     - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
+                             void *element, uint32_t element_len, char **msg, 
+                             uint32_t *msg_len)
+{
+  char *string;
+  int index;
+
+  /* Calculate the number of bytes in this message */
+  uint32_t num_chars = BACS_HEADER_SIZE +
+    sizeof(uint32_t) +  /* Element length */
+    element_len;        /* Element content */
+
+  /* Allocate memory for the message string */
+  string = calloc(num_chars, sizeof(char));
+  if(string == NULL) 
+    die_with_error("msg_with_single_element- calloc failed");
+  memset(string, 0, num_chars*sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(action, resource, type, string);
+
+  /* Add the element to the message after the header */
+  index = BACS_HEADER_SIZE;
+  *(uint32_t *)&string[index] = element_len;
+  index = index + sizeof(uint32_t);
+  if(element_len > 0) memcpy(&string[index], element, element_len);
+
+  /* Set the return values */
+  *msg_len = num_chars;
+  *msg = string;
+}
+
+
+/**
  * parse_msg_get_folder_meta_request
  *
  * Extracts the folder name from the request
@@ -599,7 +582,7 @@ const char *get_header_type_string(uint8_t type)
 void parse_msg_get_folder_meta_request(char *msg, char **dirname)
 {
   char *string;
-  uint16_t string_len;
+  uint32_t string_len;
   uint32_t index;
 
   /* Do a sanity check to make sure we got the expected type of message */
@@ -610,7 +593,7 @@ void parse_msg_get_folder_meta_request(char *msg, char **dirname)
 
   /* Extract the length of the dirname string from the message */
   index = BACS_HEADER_SIZE;
-  string_len = *(uint16_t *)&msg[BACS_HEADER_SIZE];
+  string_len = *(uint32_t *)&msg[BACS_HEADER_SIZE];
 
   /* Allocate memory for the dirname string; Add one more char to the end for a 
    * null terminator */
@@ -620,7 +603,7 @@ void parse_msg_get_folder_meta_request(char *msg, char **dirname)
   memset(string, 0, (string_len + 1) * sizeof(char));
 
   /* Extract filename from message */
-  index = index + sizeof(uint16_t);
+  index = index + sizeof(uint32_t);
   strncpy(string, &msg[index], string_len);
   *dirname = string;
 }
@@ -759,7 +742,7 @@ void parse_msg_post_block_response(char *msg, uuid_t *uuid)
     die_with_error("parse_msg_post_block_response - invalid message header");
 
   /* Extract the block's UUID */
-  index = BACS_HEADER_SIZE;
+  index = BACS_HEADER_SIZE + sizeof(uint32_t);
   msg_uuid = (uuid_t *)&msg[index];
   uuid_copy(*uuid, *msg_uuid);
 }
@@ -873,7 +856,7 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
 void parse_msg_post_folder_request(char *msg, char **foldername)
 {
   char *string;
-  uint16_t string_len;
+  uint32_t string_len;
   uint32_t index;
 
   /* Do a sanity check to make sure we got the expected type of message */
@@ -884,7 +867,7 @@ void parse_msg_post_folder_request(char *msg, char **foldername)
 
   /* Extract the length of the folder name string from the message */
   index = BACS_HEADER_SIZE;
-  string_len = *(uint16_t *)&msg[BACS_HEADER_SIZE];
+  string_len = *(uint32_t *)&msg[BACS_HEADER_SIZE];
 
   /* Allocate memory for the folder name string; Add one more char to the end 
    * for a null terminator */
@@ -894,7 +877,7 @@ void parse_msg_post_folder_request(char *msg, char **foldername)
   memset(string, 0, (string_len + 1) * sizeof(char));
 
   /* Extract folder name from message */
-  index = index + sizeof(uint16_t);
+  index = index + sizeof(uint32_t);
   strncpy(string, &msg[index], string_len);
   *foldername = string;
 }

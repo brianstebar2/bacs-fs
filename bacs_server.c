@@ -106,8 +106,8 @@ int main(int argc, char **argv)
     populate_block(block_ptr, block_content, block_size);
     /* TODO: Server updates file status if all blocks in the file are ready */
 
-    printf("SERVER FILE META\n");
-    print_file_meta(file_meta);
+    /*printf("SERVER FILE META\n");
+    print_file_meta(file_meta);*/
 
     /* Server: send response indicicating success */
     create_msg_post_block_response(uuids[i], &msg, &len);
@@ -149,35 +149,35 @@ int main(int argc, char **argv)
 
   /* Have a look at the directory /awesome contents */
   /* Client: Send a request to the server for folder metadata */
-  /*create_msg_get_folder_meta_request("/awesome", &msg, &len);
+  create_msg_get_folder_meta_request("/awesome", &msg, &len);
   printf("Client: Sending message (%d bytes):\n", len);
-  print_msg(msg);*/
+  print_msg(msg);
 
   /* Server: send response containing metadata for folder */
-  /*parse_msg_get_folder_meta_request(msg, &dirname);
+  parse_msg_get_folder_meta_request(msg, &dirname);
   free(msg);
   file_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
   free(dirname);
   create_msg_get_folder_meta_response(file_meta, &msg, &len);
   printf("Server: Sending message (%d bytes):\n", len);
   print_msg(msg);
-  free(msg);*/
+  free(msg);
   
   /* Have a look at the directory /awesome/bad contents */
   /* Client: Send a request to the server for folder metadata */
-  /*create_msg_get_folder_meta_request("/awesome/bad", &msg, &len);
+  create_msg_get_folder_meta_request("/awesome/bad", &msg, &len);
   printf("Client: Sending message (%d bytes):\n", len);
-  print_msg(msg);*/
+  print_msg(msg);
 
   /* Server: send response containing metadata for folder */
-  /*parse_msg_get_folder_meta_request(msg, &dirname);
+  parse_msg_get_folder_meta_request(msg, &dirname);
   free(msg);
   file_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
   free(dirname);
   create_msg_get_folder_meta_response(file_meta, &msg, &len);
   printf("Server: Sending message (%d bytes):\n", len);
   print_msg(msg);
-  free(msg);*/
+  free(msg);
 
 
 
