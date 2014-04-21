@@ -18,3 +18,6 @@
 *.app
 bacs_client
 bacs_server
+
+# Data folder
+bacs_data/
