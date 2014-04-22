@@ -33,7 +33,9 @@ block_t *create_block_t()
   uuid_generate(result->uuid);
   result->size = 0;
   result->status = NEW;
-  result->checksum = 0;
+  /*result->checksum = 0;*/
+  /*result->num_hosts = 0;*/
+  /*result->host_ips = NULL;*/
   result->parent = NULL;
 
   /* Add block to server block list */
@@ -105,7 +107,7 @@ block_t *find_block(uuid_t uuid)
 
 
 /**
- * generate_block_filename()
+ * generate_block_filename
  *
  * Generates the filename for a given block
  *
@@ -126,7 +128,44 @@ char *generate_block_filename(block_t *target)
 
 
 /**
- * populate_block()
+ * get_block_content
+ *
+ * Retrieves the content of the specified block
+ *
+ * NOTE: this method allocates memory for its return value; it is the 
+ * responsiblity of the caller to free the allocation
+ */
+char *get_block_content(block_t *target)
+{
+  char *content;
+
+  /* Open the file */
+  char *filename = generate_block_filename(target);
+  FILE *block_file = fopen(filename, "r");
+
+  /* Check that file actually exists */
+  if(block_file == NULL) 
+    die_with_error("get_block_content - file error\n");
+
+  /* Allocate memory for content */
+  content = calloc(target->size, sizeof(char));
+  if(content == NULL) die_with_error("get_block_content - calloc failed");
+  memset(content, 0, target->size*sizeof(char));
+
+  /* Read content from block file */
+  fread(content, sizeof(char), target->size, block_file);
+
+  /* Clean up */
+  fclose(block_file);
+  free(filename);
+
+  return content;
+}
+
+
+
+/**
+ * populate_block
  *
  * Writes the content to a block and marks it as ready
  */

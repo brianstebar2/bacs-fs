@@ -20,6 +20,146 @@
 
 
 /**
+ * create_msg_get_block_request
+ *
+ * Generates a message string requesting to download a block
+ *
+ * uuid     - UUID of the block to request
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_get_block_request(uuid_t uuid, char **msg, uint32_t *msg_len)
+{
+  msg_with_single_element(GET, BACS_BLOCK, BACS_REQUEST, uuid, sizeof(uuid_t), 
+                          msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_get_block_response
+ *
+ * Generates a message string return a block
+ *
+ * uuid    - UUID of the block being returned
+ * size    - number of bytes in the block
+ * content - raw content of the block
+ * msg     - (return val) pointer where the message string will be stored
+ * msg_len - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
+                                   char **msg, uint32_t *msg_len)
+{
+  msg_with_block(GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content, 
+                 msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_get_file_request
+ *
+ * Generates a message string requesting to download a file
+ *
+ * filename - null-terminated string containing the fully-qualified path of the
+ *            target file
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_get_file_request(char *filename, char **msg, uint32_t *msg_len)
+{
+  msg_with_single_element(GET, BACS_FILE, BACS_REQUEST, 
+                          filename, (uint32_t)strlen(filename), msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_get_file_response
+ *
+ * Generates a message response string include the list of the file's block 
+ * UUIDs and the list of server IPs storing each block
+ *
+ * file_meta - meta_t for the file containing the metadata to send
+ * msg       - (return val) pointer where the message string will be stored
+ * msg_len   - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_get_file_response(meta_t *file_meta, char **msg, 
+                                  uint32_t *msg_len)
+{
+  char *string;
+  uint64_t index, i;
+  block_t *current;
+
+  /* Calculate the number of bytes in the message */
+  uint64_t num_chars = BACS_HEADER_SIZE +
+    sizeof(uint64_t);  /* Number of basic_block_t's in the message */
+
+  /* Add the bytes needed for each basic_block_t */
+  for(i=0; i < file_meta->num_blocks; i++) {
+    current = file_meta->blocks[i];
+
+    num_chars = num_chars +
+      sizeof(uuid_t) +        /* Block UUID */
+      sizeof(uint32_t) +      /* Block size */
+      /*sizeof(uint32_t) +*/      /* Block checksum */
+      sizeof(uint8_t);        /* Number of block hosts */
+      /*current->num_hosts*sizeof(uint32_t);*/ /* Block host IPs */
+  }
+
+  /* Allocate memory for the message */
+  string = calloc(num_chars, sizeof(char));
+  if(string == NULL) 
+    die_with_error("create_msg_get_file_response - calloc failed");
+  memset(string, 0, num_chars*sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(GET, BACS_FILE, BACS_RESPONSE, string);
+
+  /* Add the count of basic_block_t's to the message */
+  index = BACS_HEADER_SIZE;
+  *(uint64_t *)&string[index] = file_meta->num_blocks;
+  index = index + sizeof(uint64_t);
+
+  /* Add each block's metadata to the message */
+  for(i=0; i < file_meta->num_blocks; i++) {
+    current = file_meta->blocks[i];
+
+    /* Add the block UUID */
+    uuid_copy(*(uuid_t *)&string[index], current->uuid);
+    index = index + sizeof(uuid_t);
+
+    /* Add the block's size */
+    *(uint32_t *)&string[index] = current->size;
+    index = index + sizeof(uint32_t);
+
+    /* TODO: Add the block's checksum */
+
+    /* TODO: Add the block's host IPs */
+    *(uint8_t *)&string[index] = 0;
+    index = index + sizeof(uint8_t);
+  }
+
+  /* Set the return values */
+  *msg_len = num_chars;
+  *msg = string;
+}
+
+
+
+/**
  * create_msg_get_folder_meta_request
  *
  * Generates a message string requesting the list of files, folders, and
@@ -195,38 +335,8 @@ void create_msg_get_servers_response(char **msg, uint32_t *msg_len)
 void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
                                    char **msg, uint32_t *msg_len)
 {
-  char *string;
-  uint32_t index;
-  
-  /* Calculate the number of bytes in this message */
-  *msg_len = BACS_HEADER_SIZE +
-    sizeof(uuid_t) +    /* length of UUID */
-    sizeof(uint32_t) +  /* block size */
-    size;               /* size of block */
-
-  /* Allocate memory for the message string and initialize it */
-  string = calloc(*msg_len, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_post_block_request - calloc failed");
-  memset(string, 0, *msg_len * sizeof(char));
-
-  /* Slap a header on the message */
-  generate_header(POST, BACS_BLOCK, BACS_REQUEST, string);
-
-  /* Add the block UUID to the message after the header */
-  index = BACS_HEADER_SIZE;
-  uuid_copy(*(uuid_t *)&string[index], uuid);
-
-  /* Add the block's content after its UUID */
-  index = index + sizeof(uuid_t);
-  *(uint32_t *)&(string[index]) = size;
-  index = index + sizeof(uint32_t);
-  strncpy(&string[index], content, size);
-
-  /* TODO: Add checksum to message */
-
-  /* Return the finished message */
-  *msg = string;
+  msg_with_block(POST, BACS_BLOCK, BACS_REQUEST, uuid, size, content, 
+                 msg, msg_len);
 }
 
 
@@ -385,23 +495,6 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  */
 void create_msg_post_folder_response(char **msg, uint32_t *msg_len)
 {
-  // char *string;
-  
-  // /* Calculate the number of bytes in this message */
-  // uint32_t num_chars = BACS_HEADER_SIZE;
-
-  // /* Allocate memory for the message string */
-  // string = calloc(num_chars, sizeof(char));
-  // if(string == NULL) 
-  //   die_with_error("create_msg_post_folder_response - calloc failed");
-  // memset(string, 0, num_chars*sizeof(char));
-
-  // /* Slap a header on the message */
-  // generate_header(POST, BACS_FOLDER, BACS_RESPONSE, string);
-
-  // /* Set the return values */
-  // *msg_len = num_chars;
-  // *msg = string;
   msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
                           NULL, 0, msg, msg_len);
 }
@@ -520,9 +613,67 @@ const char *get_header_type_string(uint8_t type)
 
 
 /**
+ * msg_with_block
+ *
+ * Populates a message string with the specified headers and a block
+ *
+ * action   - message action identifier
+ * resource - target resource for this message
+ * type     - type of message
+ * uuid     - UUID of the block being uploaded
+ * size     - number of bytes in the block
+ * content  - raw content of the block
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
+                    uuid_t uuid, uint32_t size, char *content,
+                    char **msg, uint32_t *msg_len)
+{
+  char *string;
+  uint32_t index;
+  
+  /* Calculate the number of bytes in this message */
+  *msg_len = BACS_HEADER_SIZE +
+    sizeof(uuid_t) +    /* length of UUID */
+    sizeof(uint32_t) +  /* block size */
+    /*sizeof(uint32_t) +*/  /* block checksum */
+    size;               /* size of block */
+
+  /* Allocate memory for the message string and initialize it */
+  string = calloc(*msg_len, sizeof(char));
+  if(string == NULL) 
+    die_with_error("msg_with_block - calloc failed");
+  memset(string, 0, *msg_len * sizeof(char));
+
+  /* Slap a header on the message */
+  generate_header(action, resource, type, string);
+
+  /* Add the block UUID to the message after the header */
+  index = BACS_HEADER_SIZE;
+  uuid_copy(*(uuid_t *)&string[index], uuid);
+
+  /* Add the block's content after its UUID */
+  index = index + sizeof(uuid_t);
+  *(uint32_t *)&(string[index]) = size;
+  index = index + sizeof(uint32_t);
+  strncpy(&string[index], content, size);
+
+  /* TODO: Add checksum to message */
+
+  /* Return the finished message */
+  *msg = string;
+}
+
+
+
+/**
  * msg_with_single_element
  *
- * Populates a message string with the specified headers a single data element
+ * Populates a message string with the specified headers and single data element
  *
  * action      - message action identifier
  * resource    - target resource for this message
@@ -568,6 +719,188 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
 }
 
 
+
+/**
+ * parse_msg_block
+ *
+ * Extracts the UUID, content size, and content of the block from the request
+ *
+ * action   - message action identifier
+ * resource - target resource for this message
+ * type     - type of message
+ * msg      - the message to parse
+ * uuid     - (return val) pointer to uuid_t where UUID should be written
+ * size     - (return val) pointer to number of bytes in the block
+ * content  - (return val) pointer to a string to contain the block's content
+ * 
+ * NOTE: this method allocates memory for 'content'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type, 
+                     uuid_t *uuid, uint32_t *size, char **content)
+{
+  uint32_t index;
+  uuid_t *msg_uuid;
+  char *string;
+
+  /* Do a sanity check to make sure we got the expected type of message */
+  if(get_header_resource(msg) != resource || 
+     get_header_action(msg) != action ||
+     get_header_type(msg) != type)
+    die_with_error("parse_msg_block - invalid message header");
+
+  /* Extract the block's UUID */
+  index = BACS_HEADER_SIZE;
+  msg_uuid = (uuid_t *)&msg[index];
+  uuid_copy(*uuid, *msg_uuid);
+
+  /* Extract the length of the block content from the message */
+  index = index + sizeof(uuid_t);
+  *size = *(uint32_t *)&msg[index];
+
+  /* Allocate memory for the block content */
+  string = calloc(*size, sizeof(char));
+  if(string == NULL) 
+    die_with_error("parse_msg_block - calloc failed");
+  memset(string, 0, *size * sizeof(char));
+
+  /* Extract content from message */
+  index = index + sizeof(uint32_t);
+  strncpy(string, &msg[index], *size);
+  *content = string;
+
+  /* TODO: Extract checksum from message */
+}
+
+
+
+/**
+ * parse_msg_get_block_request
+ *
+ * Extracts the UUID of the block from the request
+ *
+ * msg     - the message to parse
+ * uuid    - (return val) pointer to uuid_t where UUID should be written
+ */
+void parse_msg_get_block_request(char *msg, uuid_t *uuid)
+{
+  char *str_uuid;
+  uuid_t *msg_uuid;
+
+  /* Get UUID encoded as a string from message */
+  parse_msg_single_string(msg, GET, BACS_BLOCK, BACS_REQUEST, &str_uuid);
+
+  /* Extract UUID from string */
+  msg_uuid = (uuid_t *)str_uuid;
+  uuid_copy(*uuid, *msg_uuid);
+
+  /* Clean up */
+  free(str_uuid);
+}
+
+
+
+/**
+ * parse_msg_post_block_request
+ *
+ * Extracts the UUID, content size, and content of the block from the request
+ *
+ * msg     - the message to parse
+ * uuid    - (return val) pointer to uuid_t where UUID should be written
+ * size    - (return val) pointer to number of bytes in the block
+ * content - (return val) pointer to a string to contain the block's content
+ * 
+ * NOTE: this method allocates memory for 'content'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size, 
+                                  char **content)
+{
+  parse_msg_block(msg, GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content);
+}
+
+
+
+/**
+ * parse_msg_get_file_request
+ *
+ * Extracts the filename from the request
+ *
+ * msg      - the message to parse
+ * filename - (return val) pointer to string where filename should be stored
+ * 
+ * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void parse_msg_get_file_request(char *msg, char **filename)
+{
+  parse_msg_single_string(msg, GET, BACS_FILE, BACS_REQUEST, filename);
+}
+
+
+
+/**
+ * parse_msg_get_file_response
+ *
+ * Extracts the basic_block_t's from the response
+ *
+ * msg        - the message to parse
+ * blocks     - (return val) pointer to destination array of basic_block_t's
+ * num_blocks - (return val) pointer to count of basic_block_t's in array
+ * 
+ * NOTE: this method allocates memory for 'blocks' and the 'host_ips' within 
+ *       each basic_block_t; it is the responsiblity of the caller to free the 
+ *       memory allocation
+ */
+void parse_msg_get_file_response(char *msg, basic_block_t **blocks, 
+                                 uint64_t *num_blocks)
+{
+  basic_block_t *basic_blocks;
+  /* uint16_t string_len; */
+  uint64_t index, i;
+
+  /* Do a sanity check to make sure we got the expected type of message */
+  if(get_header_resource(msg) != BACS_FILE || 
+     get_header_action(msg) != GET ||
+     get_header_type(msg) != BACS_RESPONSE)
+    die_with_error("parse_msg_get_file_response - invalid message header");
+
+  /* Extract the number of basic_block_t's from the message */
+  index = BACS_HEADER_SIZE;
+  *num_blocks = *(uint64_t *)&msg[index];
+
+  /* Allocate memory for the basic_block_t's */
+  basic_blocks = calloc(*num_blocks, sizeof(basic_block_t));
+  if(basic_blocks == NULL) 
+    die_with_error("parse_msg_get_file_response - calloc failed");
+  memset(basic_blocks, 0, *num_blocks * sizeof(basic_block_t));
+
+  /* Extract each basic_block_t from message */
+  index = index + sizeof(uint64_t);
+  for(i=0; i < *num_blocks; i++) {
+    
+    /* Extract block UUID */
+    uuid_copy(basic_blocks[i].uuid, *(uuid_t *)&msg[index]);
+    index = index + sizeof(uuid_t);
+
+    /* Extract block size */
+    basic_blocks[i].size = *(uint32_t *)&msg[index];
+    index = index + sizeof(uint32_t);
+
+    /* TODO: Extract checksum */
+
+    /* Extract number of hosts */
+    basic_blocks[i].num_hosts = *(uint8_t *)&msg[index];
+    index = index + sizeof(uint8_t);
+
+    /* TODO: Extract host IPs */
+  }
+
+  *blocks = basic_blocks;
+}
+
+
+
 /**
  * parse_msg_get_folder_meta_request
  *
@@ -581,31 +914,7 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
  */
 void parse_msg_get_folder_meta_request(char *msg, char **dirname)
 {
-  char *string;
-  uint32_t string_len;
-  uint32_t index;
-
-  /* Do a sanity check to make sure we got the expected type of message */
-  if(get_header_resource(msg) != BACS_FOLDER || 
-     get_header_action(msg) != GET ||
-     get_header_type(msg) != BACS_REQUEST)
-    die_with_error("parse_msg_get_folder_meta_request - invalid message header");
-
-  /* Extract the length of the dirname string from the message */
-  index = BACS_HEADER_SIZE;
-  string_len = *(uint32_t *)&msg[BACS_HEADER_SIZE];
-
-  /* Allocate memory for the dirname string; Add one more char to the end for a 
-   * null terminator */
-  string = calloc(string_len + 1, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_get_folder_meta_request - calloc failed");
-  memset(string, 0, (string_len + 1) * sizeof(char));
-
-  /* Extract filename from message */
-  index = index + sizeof(uint32_t);
-  strncpy(string, &msg[index], string_len);
-  *dirname = string;
+  parse_msg_single_string(msg, GET, BACS_FOLDER, BACS_REQUEST, dirname);
 }
 
 
@@ -621,7 +930,7 @@ void parse_msg_get_folder_meta_request(char *msg, char **dirname)
  * 
  * NOTE: this method allocates memory for 'metas' and the 'name' within each
  *       basic_meta_t; it is the responsiblity of the caller to free the 
- *       memoryallocation
+ *       memory allocation
  */
 void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas, 
                                         uint32_t *num_metas)
@@ -687,37 +996,7 @@ void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas,
 void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
                                   char **content)
 {
-  uint32_t index;
-  uuid_t *msg_uuid;
-  char *string;
-
-  /* Do a sanity check to make sure we got the expected type of message */
-  if(get_header_resource(msg) != BACS_BLOCK || 
-     get_header_action(msg) != POST ||
-     get_header_type(msg) != BACS_REQUEST)
-    die_with_error("parse_msg_post_block_request - invalid message header");
-
-  /* Extract the block's UUID */
-  index = BACS_HEADER_SIZE;
-  msg_uuid = (uuid_t *)&msg[index];
-  uuid_copy(*uuid, *msg_uuid);
-
-  /* Extract the length of the block content from the message */
-  index = index + sizeof(uuid_t);
-  *size = *(uint32_t *)&msg[index];
-
-  /* Allocate memory for the block content */
-  string = calloc(*size, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_post_block_request - calloc failed");
-  memset(string, 0, *size * sizeof(char));
-
-  /* Extract content from message */
-  index = index + sizeof(uint32_t);
-  strncpy(string, &msg[index], *size);
-  *content = string;
-
-  /* TODO: Extract checksum from message */
+  parse_msg_block(msg, POST, BACS_BLOCK, BACS_REQUEST, uuid, size, content);
 }
 
 
@@ -732,19 +1011,18 @@ void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size,
  */
 void parse_msg_post_block_response(char *msg, uuid_t *uuid)
 {
-  uint32_t index;
+  char *str_uuid;
   uuid_t *msg_uuid;
 
-  /* Do a sanity check to make sure we got the expected type of message */
-  if(get_header_resource(msg) != BACS_BLOCK || 
-     get_header_action(msg) != POST ||
-     get_header_type(msg) != BACS_RESPONSE)
-    die_with_error("parse_msg_post_block_response - invalid message header");
+  /* Get UUID encoded as a string from message */
+  parse_msg_single_string(msg, POST, BACS_BLOCK, BACS_RESPONSE, &str_uuid);
 
-  /* Extract the block's UUID */
-  index = BACS_HEADER_SIZE + sizeof(uint32_t);
-  msg_uuid = (uuid_t *)&msg[index];
+  /* Extract UUID from string */
+  msg_uuid = (uuid_t *)str_uuid;
   uuid_copy(*uuid, *msg_uuid);
+
+  /* Clean up */
+  free(str_uuid);
 }
 
 
@@ -855,31 +1133,7 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
  */
 void parse_msg_post_folder_request(char *msg, char **foldername)
 {
-  char *string;
-  uint32_t string_len;
-  uint32_t index;
-
-  /* Do a sanity check to make sure we got the expected type of message */
-  if(get_header_resource(msg) != BACS_FOLDER || 
-     get_header_action(msg) != POST ||
-     get_header_type(msg) != BACS_REQUEST)
-    die_with_error("parse_msg_post_folder_request - invalid message header");
-
-  /* Extract the length of the folder name string from the message */
-  index = BACS_HEADER_SIZE;
-  string_len = *(uint32_t *)&msg[BACS_HEADER_SIZE];
-
-  /* Allocate memory for the folder name string; Add one more char to the end 
-   * for a null terminator */
-  string = calloc(string_len + 1, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_post_folder_request - calloc failed");
-  memset(string, 0, (string_len + 1) * sizeof(char));
-
-  /* Extract folder name from message */
-  index = index + sizeof(uint32_t);
-  strncpy(string, &msg[index], string_len);
-  *foldername = string;
+  parse_msg_single_string(msg, POST, BACS_FOLDER, BACS_REQUEST, foldername);
 }
 
 
@@ -893,11 +1147,55 @@ void parse_msg_post_folder_request(char *msg, char **foldername)
  */
 void parse_msg_post_folder_response(char *msg)
 {
+  parse_msg_single_string(msg, POST, BACS_FOLDER, BACS_RESPONSE, NULL);
+}
+
+
+
+/**
+ * parse_msg_single_string
+ *
+ * Parses a message string with the specified headers containing a single string
+ *
+ * msg      - the message to parse
+ * action   - message action identifier
+ * resource - target resource for this message
+ * type     - type of message
+ * str      - (ret value) pointer to string to store message's single string
+ * 
+ * NOTE: this method allocates memory for 'str'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
+                             uint8_t type, char **str)
+{
+  char *string;
+  uint32_t string_len;
+  uint32_t index;
+
   /* Do a sanity check to make sure we got the expected type of message */
-  if(get_header_resource(msg) != BACS_FOLDER || 
-     get_header_action(msg) != POST ||
-     get_header_type(msg) != BACS_RESPONSE)
-    die_with_error("parse_msg_post_folder_response - invalid message header");
+  if(get_header_resource(msg) != resource || 
+     get_header_action(msg) != action ||
+     get_header_type(msg) != type)
+    die_with_error("parse_msg_single_string - invalid message header");
+
+  if(str != NULL) {
+    /* Extract the length of the string from the message */
+    index = BACS_HEADER_SIZE;
+    string_len = *(uint32_t *)&msg[BACS_HEADER_SIZE];
+
+    /* Allocate memory for the string; Add one more char to the end for a 
+     * null terminator */
+    string = calloc(string_len + 1, sizeof(char));
+    if(string == NULL) 
+      die_with_error("parse_msg_single_string - calloc failed");
+    memset(string, 0, (string_len + 1) * sizeof(char));
+
+    /* Extract string from message */
+    index = index + sizeof(uint32_t);
+    strncpy(string, &msg[index], string_len);
+    *str = string;
+  }
 }
 
 
@@ -921,6 +1219,7 @@ void print_msg(char *msg)
         /* BLOCK requests */
         case BACS_BLOCK:  
           switch(get_header_action(msg)) {
+            case GET:   print_msg_get_block_request(msg); break;
             case POST:  print_msg_post_block_request(msg); break;
             default:    printf("INVALID ACTION");
           }
@@ -930,6 +1229,7 @@ void print_msg(char *msg)
         /* FILE requests */
         case BACS_FILE:  
           switch(get_header_action(msg)) {
+            case GET:   print_msg_get_file_request(msg); break;
             case POST:  print_msg_post_file_request(msg); break;
             default:    printf("INVALID ACTION");
           }
@@ -957,6 +1257,7 @@ void print_msg(char *msg)
         /* BLOCK responses */
         case BACS_BLOCK:  
           switch(get_header_action(msg)) {
+            case GET:   print_msg_get_block_response(msg); break;
             case POST:  print_msg_post_block_response(msg); break;
             default:    printf("INVALID ACTION");
           }
@@ -966,6 +1267,7 @@ void print_msg(char *msg)
         /* FILE responses */
         case BACS_FILE:  
           switch(get_header_action(msg)) {
+            case GET:   print_msg_get_file_response(msg); break;
             case POST:  print_msg_post_file_response(msg); break;
             default:    printf("INVALID ACTION");
           }
@@ -991,6 +1293,89 @@ void print_msg(char *msg)
     default: printf("UNKNOWN MESSAGE TYPE");
   }
 
+  printf("\n");
+}
+
+
+
+/**
+ * print_msg_get_block_request
+ *
+ * DEBUGGING; Prints out contents of GET BACS_BLOCK request in human-readable 
+ * format
+ */
+void print_msg_get_block_request(char *msg)
+{
+  uuid_t uuid;
+  char *str;
+
+  parse_msg_get_block_request(msg, &uuid);
+  str = uuid_str(uuid);
+  printf("%s\n", str);
+  free(str);
+}
+
+
+
+/**
+ * print_msg_get_block_response
+ *
+ * DEBUGGING; Prints out contents of GET BACS_BLOCK response in human-readable 
+ * format
+ */
+void print_msg_get_block_response(char *msg)
+{
+  uuid_t uuid;
+  uint32_t block_size;
+  char *content, *str;
+
+  parse_msg_get_block_response(msg, &uuid, &block_size, &content);
+  str = uuid_str(uuid);
+  printf("%s\n", str);
+  free(str);
+  printf(" - Content (%d bytes): %s\n", block_size, content);
+  free(content);
+
+  /* TODO: Add checksum to message */
+}
+
+
+
+/**
+ * print_msg_get_file_request
+ *
+ * DEBUGGING; Prints out contents of GET FILE request in human-readable 
+ * format
+ */
+void print_msg_get_file_request(char *msg)
+{
+  char *filename;
+  parse_msg_get_file_request(msg, &filename);
+  printf("%s\n", filename);
+  free(filename);
+}
+
+
+
+/**
+ * print_msg_get_file_response
+ *
+ * DEBUGGING; Prints out contents of GET FILE response in human-readable 
+ * format
+ */
+void print_msg_get_file_response(char *msg)
+{
+  uint64_t num_blocks, i;
+  basic_block_t *blocks;
+  parse_msg_get_file_response(msg, &blocks, &num_blocks);
+  printf("%" PRIu64 " basic_block_t's:", num_blocks);
+  for(i=0; i < num_blocks; i++) {
+    char *str = uuid_str(blocks[i].uuid);
+    printf("\n - %s (%d bytes) - Hosts: %d", str, blocks[i].size, 
+           blocks[i].num_hosts);
+    free(str);
+  }
+  free(blocks);
   printf("\n");
 }
 

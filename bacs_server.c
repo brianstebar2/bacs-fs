@@ -29,11 +29,12 @@
 
 int main(int argc, char **argv)
 {
-  uint64_t file_size, num_uuids;
+  uint64_t file_size, num_uuids, num_blocks;
   char *msg, *dirname, *filename;
   uint32_t len, i;
   meta_t *file_meta;
   uuid_t *uuids;
+  basic_block_t *basic_blocks;
 
   printf("BACS - Starting file server...\n");
 
@@ -101,6 +102,7 @@ int main(int argc, char **argv)
     /* Server: write block and update block metadata */
     parse_msg_post_block_request(msg, &block_uuid, &block_size, &block_content);
     free(msg);
+
     /* Populate block content */
     block_ptr = find_block(block_uuid);
     populate_block(block_ptr, block_content, block_size);
@@ -135,7 +137,7 @@ int main(int argc, char **argv)
   print_msg(msg);
   free(msg);
 
-  /*file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
+  file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
   printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
   printf("[ ");
   for(i = 0; i < file_meta->num_blocks; i++) {
@@ -145,7 +147,7 @@ int main(int argc, char **argv)
 
   printf("\nSERVER META TREE\n");
   print_meta_tree(fs_metadata, "");
-  printf("\n");*/
+  printf("\n");
 
   /* Have a look at the directory /awesome contents */
   /* Client: Send a request to the server for folder metadata */
@@ -180,9 +182,48 @@ int main(int argc, char **argv)
   free(msg);
 
 
+  /* Client: Send a message requesting to download a file */
+  create_msg_get_file_request("/awesome/bad/c.txt", &msg, &len);
+  printf("Client: Sending message (%d bytes):\n", len);
+  print_msg(msg);
 
-
+  /* Server: send response containing UUIDs and IP addresses for file's blocks */
+  parse_msg_get_file_request(msg, &filename);
+  free(msg);
+  file_meta = find_meta(fs_metadata, filename, BACS_FILE);
+  create_msg_get_file_response(file_meta, &msg, &len);
+  printf("Server: Sending message (%d bytes):\n", len);
+  print_msg(msg);
   
+
+  /* Iteratively download each block */
+  parse_msg_get_file_response(msg, &basic_blocks, &num_blocks);
+  free(msg);
+
+  for(i=0; i < num_blocks; i++) {
+    uuid_t uuid;
+    block_t *block_ptr;
+    char *block_content;
+
+    /* Client: Take each basic_block_t and request the actual blocks */
+    create_msg_get_block_request(basic_blocks[i].uuid, &msg, &len);
+    printf("Client: Sending message (%d bytes):\n", len);
+    print_msg(msg);
+
+    /* Server: look up the block and retrieve its content */
+    parse_msg_get_block_request(msg, &uuid);
+    free(msg);
+    block_ptr = find_block(uuid);
+    block_content = get_block_content(block_ptr);
+
+    /* Server: send response containing block content */
+    create_msg_get_block_response(block_ptr->uuid, block_ptr->size, 
+                                  block_content, &msg, &len);
+    printf("Server: Sending message (%d bytes):\n", len);
+    print_msg(msg);
+    free(block_content);
+    free(msg);
+  }
 
 
 

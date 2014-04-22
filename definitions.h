@@ -48,18 +48,34 @@ typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
 /* ========================= *
  * BLOCK METADATA STRUCTURES *
  * ========================= */ 
+/* FULL BLOCK STRUCTURE (for use by servers only) */
 typedef struct block_s {
   /* BLOCK METADATA */
   uuid_t uuid;         /* Identifer for this block (and its filename) */
   uint32_t size;       /* Bytes of data in this block */
   uint8_t status;      /* Can be any of the status constants */
-  uint32_t checksum;   /* Checksum for verifying block data */
+  /*uint32_t checksum;*/   /* Checksum for verifying block data */
+
+  /* BLOCK HOST METADATA */
+  /*uint8_t num_hosts;*/   /* Number of servers hosting this block */
+  /*uint32_t *host_ips;*/  /* IP addresses of servers hosting this block */
 
   /* TREE AND LINKED LIST POINTERS */
   struct meta_s *parent;  /* File to which this block belongs */
   struct block_s *next;   /* Next block in global block list */
   struct block_s *prev;   /* Previos block in global block list */
 } block_t;
+
+/* SIMPLIFIED BLOCK STRUCTURE (for use during message passing by both clients 
+ * and servers) */
+typedef struct basic_block_s {
+  uuid_t uuid;         /* Identifer for this block (and its filename) */
+  uint32_t size;       /* Bytes of data in this block */
+  /*uint32_t checksum;*/   /* Checksum for verifying block data */
+
+  uint8_t num_hosts;   /* Number of servers hosting this block */
+  /*uint32_t *host_ips;*/  /* IP addresses of servers hosting this block */
+} basic_block_t;
 
 
 
