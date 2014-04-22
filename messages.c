@@ -113,7 +113,6 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
 
     num_chars = num_chars +
       sizeof(uuid_t) +        /* Block UUID */
-      sizeof(uint32_t) +      /* Block size */
       /*sizeof(uint32_t) +*/      /* Block checksum */
       sizeof(uint8_t);        /* Number of block hosts */
       /*current->num_hosts*sizeof(uint32_t);*/ /* Block host IPs */
@@ -140,10 +139,6 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
     /* Add the block UUID */
     uuid_copy(*(uuid_t *)&string[index], current->uuid);
     index = index + sizeof(uuid_t);
-
-    /* Add the block's size */
-    *(uint32_t *)&string[index] = current->size;
-    index = index + sizeof(uint32_t);
 
     /* TODO: Add the block's checksum */
 
@@ -883,10 +878,6 @@ void parse_msg_get_file_response(char *msg, basic_block_t **blocks,
     uuid_copy(basic_blocks[i].uuid, *(uuid_t *)&msg[index]);
     index = index + sizeof(uuid_t);
 
-    /* Extract block size */
-    basic_blocks[i].size = *(uint32_t *)&msg[index];
-    index = index + sizeof(uint32_t);
-
     /* TODO: Extract checksum */
 
     /* Extract number of hosts */
@@ -1371,8 +1362,7 @@ void print_msg_get_file_response(char *msg)
   printf("%" PRIu64 " basic_block_t's:", num_blocks);
   for(i=0; i < num_blocks; i++) {
     char *str = uuid_str(blocks[i].uuid);
-    printf("\n - %s (%d bytes) - Hosts: %d", str, blocks[i].size, 
-           blocks[i].num_hosts);
+    printf("\n - %s - Hosts: %d", str, blocks[i].num_hosts);
     free(str);
   }
   free(blocks);

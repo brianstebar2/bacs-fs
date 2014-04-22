@@ -70,9 +70,7 @@ typedef struct block_s {
  * and servers) */
 typedef struct basic_block_s {
   uuid_t uuid;         /* Identifer for this block (and its filename) */
-  uint32_t size;       /* Bytes of data in this block */
   /*uint32_t checksum;*/   /* Checksum for verifying block data */
-
   uint8_t num_hosts;   /* Number of servers hosting this block */
   /*uint32_t *host_ips;*/  /* IP addresses of servers hosting this block */
 } basic_block_t;
