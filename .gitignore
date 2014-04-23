@@ -19,5 +19,9 @@
 bacs_client
 bacs_server
 
+# Garbage temp files
+*.c~
+*.h~
+
 # Data folder
 bacs_data/
