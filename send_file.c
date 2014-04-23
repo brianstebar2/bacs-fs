@@ -3,18 +3,23 @@
 
 #include "send_file.h"
 
-void send_file(char *path, char *IPaddr)
+void send_file(char *path, char *IPaddr, uuid_t **uuids, uint64_t *num_uuids)
 {
 	FILE *fp = fopen(path,"r");
 	char block[SIZE];
 	size_t already_read_block;
-	int mycode;
-	char data[SIZE];
-
+	int i=0;
 	fseek(fp,0,SEEK_SET);
 
 	while(!feof(fp))
 	{
+		char *msg = 0;
+		uint32_t *msg_len = malloc(sizeof(uint32_t));
+		uuid_t *uuid = malloc(sizeof(uuid));;
+		uint32_t *size = malloc(sizeof(uint32_t));
+		char *content = 0;
+		if(i>=*num_uuids)
+			printf("****************error num_uuids");
 		/* Set block initially to 0 */
 		memset(block,0,sizeof(block));
 		/* Caller should check for -1 --> Empty file! */
@@ -24,27 +29,20 @@ void send_file(char *path, char *IPaddr)
 				/* return EOF; */
 			}
 		already_read_block = fread(block, 1, SIZE, fp);
-		memset(data, 0, SIZE);
-		/* sending blocks */
-		strcpy(data, strcat( IPaddr, block));
-		/* printf("data : %s\n",data); */
-		/*mycode = mysend(data,  IPaddr);*/
-		if(mycode == RETRY)
-		{
-			printf("Sender Returned: %d\n", mycode);
-			printf("Need to resend data\nResending...\n\n");
-			/*printf("Sender Returned: %d\n",mysend(data, IPaddr));		*/
-		}	
-		if(mycode == FAILURE)
-		{
-			printf("Sender Returned: %d\tSending Failed\n", mycode);
-		
-		}  
-		if(mycode == SUCCESS)
-		{
-			printf("Sender Returned: %d\tSending SUccessful\n", mycode);
-		}
-	
+		create_msg_post_block_request(uuids[i], SIZE, block, &msg, msg_len);
+		parse_msg_get_block_response(msg, uuid, size, &content);
+		if(get_header_resource(msg) != BACS_FILE || 
+     	   	   get_header_action(msg) != POST ||
+     	           get_header_type(msg) != BACS_RESPONSE)
+    			die_with_error("send_file - invalid message header");
+		i++;
+
+		free(msg);
+		free(msg_length);
+		free(uuid);
+		free(size);
+		free(content);
+		i++;
 	}
 	fclose(fp);
 }
