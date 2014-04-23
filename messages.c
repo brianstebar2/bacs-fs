@@ -31,7 +31,7 @@
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_block_request(uuid_t uuid, char **msg, uint32_t *msg_len)
+void create_msg_get_block_request(uuid_t uuid, char **msg, uint64_t *msg_len)
 {
   msg_with_single_element(GET, BACS_BLOCK, BACS_REQUEST, uuid, sizeof(uuid_t), 
                           msg, msg_len);
@@ -54,7 +54,7 @@ void create_msg_get_block_request(uuid_t uuid, char **msg, uint32_t *msg_len)
  *       caller to free the allocation
  */
 void create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
-                                   char **msg, uint32_t *msg_len)
+                                   char **msg, uint64_t *msg_len)
 {
   msg_with_block(GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content, 
                  msg, msg_len);
@@ -75,7 +75,7 @@ void create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_file_request(char *filename, char **msg, uint32_t *msg_len)
+void create_msg_get_file_request(char *filename, char **msg, uint64_t *msg_len)
 {
   msg_with_single_element(GET, BACS_FILE, BACS_REQUEST, 
                           filename, (uint32_t)strlen(filename), msg, msg_len);
@@ -97,7 +97,7 @@ void create_msg_get_file_request(char *filename, char **msg, uint32_t *msg_len)
  *       caller to free the allocation
  */
 void create_msg_get_file_response(meta_t *file_meta, char **msg, 
-                                  uint32_t *msg_len)
+                                  uint64_t *msg_len)
 {
   char *string;
   uint64_t index, i;
@@ -169,7 +169,7 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
  *       caller to free the allocation
  */
 void create_msg_get_folder_meta_request(char *dirname, char **msg, 
-                                        uint32_t *msg_len)
+                                        uint64_t *msg_len)
 {
   msg_with_single_element(GET, BACS_FOLDER, BACS_REQUEST, 
                           dirname, (uint32_t)strlen(dirname), msg, msg_len);
@@ -191,7 +191,7 @@ void create_msg_get_folder_meta_request(char *dirname, char **msg,
  *       caller to free the allocation
  */
 void create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
-                                         uint32_t *msg_len)
+                                         uint64_t *msg_len)
 {
   char *string;
   int index, i;
@@ -206,6 +206,8 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
     current = (i == 0) ? folder->subfolders : folder->files;
 
     while(current != NULL) {
+      /* TODO: Only count READY files */
+
       num_chars = num_chars +
         sizeof(uint8_t) +       /* Meta type information */
         sizeof(uint16_t) +      /* File/folder name length */
@@ -234,6 +236,8 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
     current = (i == 0) ? folder->subfolders : folder->files;
 
     while(current != NULL) {
+      /* TODO: Only add READY files */
+
       /* Add the meta_t's type */
       *(uint8_t *)&string[index] = current->type;
       index = index + sizeof(uint8_t);
@@ -271,7 +275,7 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_servers_request(char **msg, uint32_t *msg_len)
+void create_msg_get_servers_request(char **msg, uint64_t *msg_len)
 {
   char *string;
   
@@ -306,7 +310,7 @@ void create_msg_get_servers_request(char **msg, uint32_t *msg_len)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_servers_response(char **msg, uint32_t *msg_len)
+void create_msg_get_servers_response(char **msg, uint64_t *msg_len)
 {
 
 }
@@ -328,7 +332,7 @@ void create_msg_get_servers_response(char **msg, uint32_t *msg_len)
  *       caller to free the allocation
  */
 void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
-                                   char **msg, uint32_t *msg_len)
+                                   char **msg, uint64_t *msg_len)
 {
   msg_with_block(POST, BACS_BLOCK, BACS_REQUEST, uuid, size, content, 
                  msg, msg_len);
@@ -349,7 +353,7 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_block_response(uuid_t uuid, char **msg, uint32_t *msg_len)
+void create_msg_post_block_response(uuid_t uuid, char **msg, uint64_t *msg_len)
 {
   msg_with_single_element(POST, BACS_BLOCK, BACS_RESPONSE, 
                           uuid, sizeof(uuid_t), msg, msg_len);
@@ -371,7 +375,7 @@ void create_msg_post_block_response(uuid_t uuid, char **msg, uint32_t *msg_len)
  *       caller to free the allocation
  */
 void create_msg_post_file_request(char *filename, uint64_t file_size, 
-                                  char **msg, uint32_t *msg_len)
+                                  char **msg, uint64_t *msg_len)
 {
   char *string;
   uint32_t index;
@@ -418,7 +422,7 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
  * NOTE: the method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_file_response(meta_t *file, char **msg, uint32_t *msg_len)
+void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
 {
   char *string;
   uint64_t index, i;
@@ -468,7 +472,7 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint32_t *msg_len)
  *       caller to free the allocation
  */
 void create_msg_post_folder_request(char *foldername, char **msg, 
-                                    uint32_t *msg_len)
+                                    uint64_t *msg_len)
 {
   msg_with_single_element(POST, BACS_FOLDER, BACS_REQUEST, foldername, 
                           (uint32_t)strlen(foldername), msg, msg_len);
@@ -488,7 +492,7 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_folder_response(char **msg, uint32_t *msg_len)
+void create_msg_post_folder_response(char **msg, uint64_t *msg_len)
 {
   msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
                           NULL, 0, msg, msg_len);
@@ -626,7 +630,7 @@ const char *get_header_type_string(uint8_t type)
  */
 void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
                     uuid_t uuid, uint32_t size, char *content,
-                    char **msg, uint32_t *msg_len)
+                    char **msg, uint64_t *msg_len)
 {
   char *string;
   uint32_t index;
@@ -683,7 +687,7 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
  */
 void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
                              void *element, uint32_t element_len, char **msg, 
-                             uint32_t *msg_len)
+                             uint64_t *msg_len)
 {
   char *string;
   int index;
