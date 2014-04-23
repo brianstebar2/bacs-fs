@@ -173,7 +173,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
     char filepath[1024];
     struct stat st;
 	uint64_t size = st.st_size;
-	char *msg = 0;
+	char *msg = 0, *resp_msg = 0;
 	uint64_t msg_len;
 	uuid_t *uuids = 0;
 	uint64_t num_uuids;
@@ -183,8 +183,12 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
     strcat(filepath,file_name);
 	stat(filepath, &st);
     	create_msg_post_file_request(file_name, size, &msg, &msg_len);
-	parse_msg_post_file_response(msg, &uuids, &num_uuids);
-	free(msg);
+	/*mysend(msg, ...) */
+  /* Wait for response */
+  /* myrecv(blah blah blah, resp_msg) */
+  parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
+	free(resp_msg);
+  free(msg);
 	if(num_uuids==0)
 		printf("***************error num_uuids\n");
 	if(get_header_resource(msg) != BACS_FILE || 
@@ -192,7 +196,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
      	   get_header_type(msg) != BACS_RESPONSE)
     		die_with_error("upload_file - invalid message header");
 
-	  /*send_file(filepath, IPaddr, &uuids, num_uuids);*/
+	  send_file(filepath, IPaddr, &uuids, num_uuids);
 	  free(uuids);
 
     printf("\n...File uploaded to path: %s\n",remote_path);

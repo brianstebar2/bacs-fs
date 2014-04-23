@@ -346,7 +346,7 @@ void start_listening()
 
 
   /* Handle incoming messages */
-  /*while(msg = myrecv()) {*/
+  /*while(msg_struct = myrecv()) {*/
   while(1) {
     switch(get_header_type(msg)) {
       case BACS_REQUEST: 
