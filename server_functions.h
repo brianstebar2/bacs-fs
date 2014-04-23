@@ -19,6 +19,7 @@
 void start_listening();
 
 /* Server logic functions */
+void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len);
 void handle_post_block(char *msg, char **response, uint64_t *response_len);
 void handle_post_file(char *msg, char **response, uint64_t *response_len);
 void handle_post_folder(char *msg, char **response, uint64_t *response_len);

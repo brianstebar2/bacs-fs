@@ -194,7 +194,7 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
                                          uint64_t *msg_len)
 {
   char *string;
-  int index, i;
+  int index, i, num_metas;
   meta_t *current;
 
   /* Calculate the number of bytes in the message */
@@ -202,17 +202,22 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
     sizeof(uint32_t);  /* Number of basic_meta_t's in the message */
 
   /* Add the bytes needed for the subfolder and file metadata */
+  num_metas = 0;
   for(i=0; i<2; i++) {
     current = (i == 0) ? folder->subfolders : folder->files;
 
     while(current != NULL) {
-      /* TODO: Only count READY files */
+      /* Only count READY and DOWNLOADING files */
+      if(current->status == READY || current->status == DOWNLOADING) {
+        num_chars = num_chars +
+          sizeof(uint8_t) +       /* Meta type information */
+          sizeof(uint16_t) +      /* File/folder name length */
+          strlen(current->name) + /* File/folder name */
+          sizeof(uint64_t);       /* Bytes contained in file/folder */
 
-      num_chars = num_chars +
-        sizeof(uint8_t) +       /* Meta type information */
-        sizeof(uint16_t) +      /* File/folder name length */
-        strlen(current->name) + /* File/folder name */
-        sizeof(uint64_t);       /* Bytes contained in file/folder */
+        num_metas++;
+      }
+
       current = current->next;
     }
   }
@@ -228,7 +233,7 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
 
   /* Add the count of basic_meta_t's to the message */
   index = BACS_HEADER_SIZE;
-  *(uint32_t *)&string[index] = folder->num_files + folder->num_subfolders;
+  *(uint32_t *)&string[index] = num_metas;
   index = index + sizeof(uint32_t);
 
   /* Add each subfolder's and file's metadata to the message */
@@ -236,21 +241,22 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
     current = (i == 0) ? folder->subfolders : folder->files;
 
     while(current != NULL) {
-      /* TODO: Only add READY files */
+      /* Only add READY and DOWNLOADING files */
+      if(current->status == READY || current->status == DOWNLOADING) {
+        /* Add the meta_t's type */
+        *(uint8_t *)&string[index] = current->type;
+        index = index + sizeof(uint8_t);
 
-      /* Add the meta_t's type */
-      *(uint8_t *)&string[index] = current->type;
-      index = index + sizeof(uint8_t);
+        /* Add the meta_t's name */
+        *(uint16_t *)&string[index] = strlen(current->name);
+        index = index + sizeof(uint16_t);
+        strncpy(&string[index], current->name, strlen(current->name));
+        index = index + strlen(current->name);
 
-      /* Add the meta_t's name */
-      *(uint16_t *)&string[index] = strlen(current->name);
-      index = index + sizeof(uint16_t);
-      strncpy(&string[index], current->name, strlen(current->name));
-      index = index + strlen(current->name);
-
-      /* Add the meta_t's size */
-      *(uint64_t *)&string[index] = current->size;
-      index = index + sizeof(uint64_t);
+        /* Add the meta_t's size */
+        *(uint64_t *)&string[index] = current->size;
+        index = index + sizeof(uint64_t);
+      }
 
       /* Advance to next meta */
       current = current->next;

@@ -21,6 +21,36 @@
 
 
 /**
+ * handle_get_folder_meta
+ * 
+ * Returns the metadata of all files and subfolders within the target folder
+ *
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len)
+{
+  char *dirname;
+  meta_t *folder_meta;
+
+  /* TODO: Check message parse for errors */
+  parse_msg_get_folder_meta_request(msg, &dirname);
+
+  /* Lookup target folder */
+  /* TODO: Check file_meta for error return code */
+  folder_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
+
+  /* Create response containing metadata for folder */
+  /* TODO: Check message creation for errors */
+  create_msg_get_folder_meta_response(folder_meta, response, response_len);
+
+  /* Clean up local data */
+  free(dirname);
+}
+
+
+
+/**
  * handle_post_block
  * 
  * Populates a block with the content in the message
@@ -60,6 +90,7 @@ void handle_post_block(char *msg, char **response, uint64_t *response_len)
   if(i == file_meta->num_blocks) file_meta->status = READY;
 
   /* Create response indicating success */
+  /* TODO: Check message creation for errors */
   create_msg_post_block_response(block_uuid, response, response_len);
 
   /* Clean up local data */
@@ -121,10 +152,6 @@ void handle_post_folder(char *msg, char **response, uint64_t *response_len)
   /* TODO: Check file_meta for error return code */
   printf("Creating folder '%s'\n", dirname);
   file_meta = add_folder(fs_metadata, dirname);
-  
-  printf("\nSERVER META TREE\n");
-  print_meta_tree(fs_metadata, "");
-  printf("\n");
 
   /* Create response indicicating success */
   /* TODO: Check message creation for errors */
@@ -152,6 +179,7 @@ void start_listening()
   /* Debugging crap... */
   uuid_t *uuids;
   uint64_t num_uuids, i;
+  meta_t *file_meta;
 
   /* Client: Send a request to upload a new file */
   create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
@@ -201,6 +229,31 @@ void start_listening()
   print_meta_tree(fs_metadata, "");
   printf("\n");
 
+  /* Add another file to the file system */
+  file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
+  printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+
+  printf("\nSERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
+  /* Client: Send a request to the server for folder metadata */
+  create_msg_get_folder_meta_request("/awesome", &msg, &len);
+  // printf("Client: Sending message (%d bytes):\n", len);
+  // print_msg(msg);
+
+  // /* Server: send response containing metadata for folder */
+  // parse_msg_get_folder_meta_request(msg, &dirname);
+  // free(msg);
+  // file_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
+  // free(dirname);
+  // create_msg_get_folder_meta_response(file_meta, &msg, &len);
+  // printf("Server: Sending message (%d bytes):\n", len);
+  // print_msg(msg);
+  // free(msg);
+
+
+
 
 
 
@@ -232,6 +285,7 @@ void start_listening()
           /* FOLDER requests */
           case BACS_FOLDER:  
             switch(get_header_action(msg)) {
+              case GET:   handle_get_folder_meta(msg, &resp, &resp_len); break;
               case POST:  handle_post_folder(msg, &resp, &resp_len); break;
               default:    printf("Invalid message action; send error message.\n");
             }
