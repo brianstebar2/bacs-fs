@@ -29,7 +29,7 @@ struct Receive_message myrecv(void)
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 	{
 		printf("Error: Socket Not Created\n");
-		return; /* (void*)FAILURE; */
+		return NULL; /* (void*)FAILURE; */
 	}	
 	
 	bzero(&my_addr, sizeof(my_addr));
@@ -40,13 +40,13 @@ struct Receive_message myrecv(void)
 	if (bind(sockfd, (struct sockaddr* ) &my_addr, sizeof(my_addr))==-1)		
 	{	
 		printf("Error: Bind Failure\n");
-		return ; /* (void*)FAILURE; */
+		return NULL; /* (void*)FAILURE; */
 	}	
 	/*memset(voidbuf, 0, sizeof(voidbuf));*/
 	if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 	{	    	
 		printf("Error: Recvfrom Failure\n");
-		return;/* (void*)FAILURE; */
+		return NULL;/* (void*)FAILURE; */
 	}
 	if(recv_message.seq_number == 0 ) {
 		message_to_pass_over.size_of_block = recv_message.message;
@@ -61,7 +61,7 @@ struct Receive_message myrecv(void)
 	if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&cli_addr, slen)==-1)
 	{
 		printf("Error: Sendto Failure\n");
-		return;/* (void*)FAILURE; */
+		return NULL;/* (void*)FAILURE; */
 	}
 	
 	num_of_messages = atoi(recv_message.message);

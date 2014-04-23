@@ -67,7 +67,6 @@ struct Receive_message
   int port_number;
   int seq_number;
   char message[1000000];
-  int size_of_block;
 };
 
 
