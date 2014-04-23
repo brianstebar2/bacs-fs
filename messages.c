@@ -20,6 +20,26 @@
 
 
 /**
+ * create_msg_error
+ *
+ * Generates a message string containing an error message
+ *
+ * err_msg  - error message string to send
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_error(uuid_t uuid, char **msg, uint64_t *msg_len)
+{
+  /*msg_with_single_element(GET, BACS_BLOCK, BACS_REQUEST, uuid, sizeof(uuid_t), 
+                          msg, msg_len);*/
+}
+
+
+
+/**
  * create_msg_get_block_request
  *
  * Generates a message string requesting to download a block
