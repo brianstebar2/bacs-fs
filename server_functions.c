@@ -21,6 +21,73 @@
 
 
 /**
+ * handle_get_block
+ * 
+ * Returns the content of the specified block
+ *
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void handle_get_block(char *msg, char **response, uint64_t *response_len)
+{
+  uuid_t uuid;
+  block_t *block_ptr;
+  char *uuid_string, *block_content;
+
+  /* TODO: Check message parse for errors */
+  parse_msg_get_block_request(msg, &uuid);
+
+  /* Look up the block and retrieve its content */
+  /* TODO: Check lookup for errors */
+  uuid_string = uuid_str(uuid);
+  printf("Retrieving content for block %s \n", uuid_string);
+  block_ptr = find_block(uuid);
+  block_content = get_block_content(block_ptr);
+
+  /* Create response containing block content */
+  /* TODO: Check message creation for errors */
+  create_msg_get_block_response(block_ptr->uuid, block_ptr->size, block_content, 
+                                response, response_len);
+  
+  /* Clean up local data */
+  free(uuid_string);
+  free(block_content);
+}
+
+
+
+/**
+ * handle_get_file
+ * 
+ * Returns the metadata for a specific file
+ *
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void handle_get_file(char *msg, char **response, uint64_t *response_len)
+{
+  char *filename;
+  meta_t *file_meta;
+
+  /* TODO: Check message parse for errors */
+  parse_msg_get_file_request(msg, &filename);
+
+  /* Lookup file to download */
+  /* TODO: Check lookup for errors */
+  printf("Retrieving metadata for file '%s'\n", filename);
+  file_meta = find_meta(fs_metadata, filename, BACS_FILE);
+
+  /* Create response containing UUIDs and IP addresses for file's blocks */
+  /* TODO: Check message creation for errors */
+  create_msg_get_file_response(file_meta, response, response_len);
+
+  /* Clean up local data */
+  free(filename);
+}
+
+
+
+/**
  * handle_get_folder_meta
  * 
  * Returns the metadata of all files and subfolders within the target folder
@@ -38,6 +105,7 @@ void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len)
 
   /* Lookup target folder */
   /* TODO: Check file_meta for error return code */
+  printf("Retrieving metadata for folder '%s'\n", dirname);
   folder_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
 
   /* Create response containing metadata for folder */
@@ -171,86 +239,105 @@ void handle_post_folder(char *msg, char **response, uint64_t *response_len)
 void start_listening()
 {
   char *msg, *resp; 
-  uint64_t len, resp_len;
+  uint64_t resp_len;
 
 
 
 
-  /* Debugging crap... */
-  uuid_t *uuids;
-  uint64_t num_uuids, i;
-  meta_t *file_meta;
+  // /* Debugging crap... */
+  // uuid_t *uuids;
+  // uint64_t len, num_uuids, num_blocks, i;
+  // meta_t *file_meta;
+  // basic_block_t *basic_blocks;
 
-  /* Client: Send a request to upload a new file */
-  create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
-  print_msg(msg);
-  handle_post_file(msg, &resp, &resp_len);
-  print_msg(resp);
-  free(msg);
+  // /* Client: Send a request to upload a new file */
+  // create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
+  // print_msg(msg);
+  // handle_post_file(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
 
-  printf("SERVER META TREE\n");
-  print_meta_tree(fs_metadata, "");
-  printf("\n");
+  // printf("SERVER META TREE\n");
+  // print_meta_tree(fs_metadata, "");
+  // printf("\n");
   
-  /* Client: Take list of UUIDs and send each block */
-  parse_msg_post_file_response(resp, &uuids, &num_uuids);
-  free(resp);
-  for(i=0; i < num_uuids; i++) {
-    block_t *block_ptr = find_block(uuids[i]);
+  // /* Client: Take list of UUIDs and send each block */
+  // parse_msg_post_file_response(resp, &uuids, &num_uuids);
+  // free(resp);
+  // for(i=0; i < num_uuids; i++) {
+  //   block_t *block_ptr = find_block(uuids[i]);
+  //   char block[DEFAULT_BLOCK_SIZE] = {0};
+  //   sprintf(block, "Block #%" PRIu64 " content", i);
     
-    /* Client: send a block */
-    char block[DEFAULT_BLOCK_SIZE] = {0};
-    sprintf(block, "Block #%" PRIu64 " content", i);
-    /* TODO: Add checksum to post block request message */
-    create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &len);
-    print_msg(msg);
+  //   /* Client: send a block */
+  //   /* TODO: Add checksum to post block request message */
+  //   create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  //   print_msg(msg);
+  //   handle_post_block(msg, &resp, &resp_len);
+  //   print_msg(resp);
+  //   free(msg);
+  //   free(resp);
 
-    /* Server: write block and update block metadata */
-    handle_post_block(msg, &resp, &resp_len);
-    print_msg(resp);
-    free(msg);
-    free(resp);
+  //   printf("SERVER FILE META\n");
+  //   print_file_meta(block_ptr->parent);
+  // }
 
-    printf("SERVER FILE META\n");
-    print_file_meta(block_ptr->parent);
-  }
-
-  /* Client: create a new folder */
-  create_msg_post_folder_request("/awesome/cool", &msg, &len);
-  print_msg(msg);
-
-  /* Server: create the new folder */
-  handle_post_folder(msg, &resp, &resp_len);
-  print_msg(resp);
-  free(msg);
-  free(resp);
-
-  printf("\nSERVER META TREE\n");
-  print_meta_tree(fs_metadata, "");
-  printf("\n");
-
-  /* Add another file to the file system */
-  file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
-  printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
-
-  printf("\nSERVER META TREE\n");
-  print_meta_tree(fs_metadata, "");
-  printf("\n");
-
-  /* Client: Send a request to the server for folder metadata */
-  create_msg_get_folder_meta_request("/awesome", &msg, &len);
-  // printf("Client: Sending message (%d bytes):\n", len);
+  // /* Client: create a new folder */
+  // create_msg_post_folder_request("/awesome/cool", &msg, &len);
   // print_msg(msg);
+  // handle_post_folder(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
 
-  // /* Server: send response containing metadata for folder */
-  // parse_msg_get_folder_meta_request(msg, &dirname);
-  // free(msg);
-  // file_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
-  // free(dirname);
-  // create_msg_get_folder_meta_response(file_meta, &msg, &len);
-  // printf("Server: Sending message (%d bytes):\n", len);
+  // printf("\nSERVER META TREE\n");
+  // print_meta_tree(fs_metadata, "");
+  // printf("\n");
+
+  //  Add another file to the file system 
+  // file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
+  // printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+
+  // printf("\nSERVER META TREE\n");
+  // print_meta_tree(fs_metadata, "");
+  // printf("\n");
+
+  // /* Have a look at the directory /awesome contents */
+  // /* Client: Send a request to the server for folder metadata */
+  // create_msg_get_folder_meta_request("/awesome", &msg, &len);
   // print_msg(msg);
+  // handle_get_folder_meta(msg, &resp, &resp_len);
+  // print_msg(resp);
   // free(msg);
+  // free(resp);
+
+  // /* Have a look at the directory /awesome/bad contents */
+  // /* Client: Send a request to the server for folder metadata */
+  // create_msg_get_folder_meta_request("/awesome/bad", &msg, &len);
+  // print_msg(msg);
+  // handle_get_folder_meta(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
+
+  // /* Client: Send a message requesting to download a file */
+  // create_msg_get_file_request("/awesome/bad/c.txt", &msg, &len);
+  // print_msg(msg);
+  // handle_get_file(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+
+  // /* Client: Take list of UUIDs and request each block */
+  // parse_msg_get_file_response(resp, &basic_blocks, &num_blocks);
+  // free(resp);
+  // for(i=0; i < num_blocks; i++) {
+  //   create_msg_get_block_request(basic_blocks[i].uuid, &msg, &len);
+  //   print_msg(msg);
+  //   handle_get_block(msg, &resp, &resp_len);
+  //   print_msg(resp);
+  //   free(msg);
+  //   free(resp);
+  // }
 
 
 
@@ -268,6 +355,7 @@ void start_listening()
           /* BLOCK requests */
           case BACS_BLOCK:  
             switch(get_header_action(msg)) {
+              case GET:   handle_get_block(msg, &resp, &resp_len); break;
               case POST:  handle_post_block(msg, &resp, &resp_len); break;
               default:    printf("Invalid message action; send error message.\n");
             }
@@ -277,6 +365,7 @@ void start_listening()
           /* FILE requests */
           case BACS_FILE:  
             switch(get_header_action(msg)) {
+              case GET:   handle_get_file(msg, &resp, &resp_len); break;
               case POST:  handle_post_file(msg, &resp, &resp_len); break;
               default:    printf("Invalid message action; send error message.\n");
             }
