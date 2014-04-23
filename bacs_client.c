@@ -184,6 +184,12 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
 	stat(filepath, &st);
     	create_msg_post_file_request(file_name, size, &msg, &msg_len);
 	/*mysend(msg, ...) */
+	ErrorCode error = mysend(msg, IPaddr, 9930, msg_len);
+	if(error == FAILURE || error == RETRY)
+		printf("error in send");
+	struct Receive_message resp;
+	resp = myrecv();
+	resp_msg = resp.msg;
   /* Wait for response */
   /* myrecv(blah blah blah, resp_msg) */
   parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
