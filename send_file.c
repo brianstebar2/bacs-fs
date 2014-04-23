@@ -28,12 +28,12 @@ void send_file(char *path, char *IPaddr)
 		/* sending blocks */
 		strcpy(data, strcat( IPaddr, block));
 		/* printf("data : %s\n",data); */
-		mycode = mysend(data,  IPaddr);
+		/*mycode = mysend(data,  IPaddr);*/
 		if(mycode == RETRY)
 		{
 			printf("Sender Returned: %d\n", mycode);
 			printf("Need to resend data\nResending...\n\n");
-			printf("Sender Returned: %d\n",mysend(data, IPaddr));		
+			/*printf("Sender Returned: %d\n",mysend(data, IPaddr));		*/
 		}	
 		if(mycode == FAILURE)
 		{

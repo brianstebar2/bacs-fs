@@ -9,11 +9,11 @@
 #include <stdbool.h>
 #include "UDPserver.h"
 
-void err(char *str)
+/*void err(char *str)
 {
     perror(str);
     exit(1);
-}
+}*/
 
 struct Send_message myrecv(void)
 {
@@ -23,10 +23,11 @@ struct Send_message myrecv(void)
 	struct Send_message recv_message;
 	char ackbuf[BUFLEN];
 	char* final_string = "\0" ;
+	int num_of_messages;
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 	{
 		printf("Error: Socket Not Created\n");
-		return;// (void*)FAILURE;
+		return; /* (void*)FAILURE; */
 	}	
 	
 	bzero(&my_addr, sizeof(my_addr));
@@ -37,26 +38,26 @@ struct Send_message myrecv(void)
 	if (bind(sockfd, (struct sockaddr* ) &my_addr, sizeof(my_addr))==-1)		
 	{	
 		printf("Error: Bind Failure\n");
-		return;// (void*)FAILURE;
+		return; /* (void*)FAILURE; */
 	}	
-	//memset(voidbuf, 0, sizeof(voidbuf));
+	/*memset(voidbuf, 0, sizeof(voidbuf));*/
 	if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 	{	    	
 		printf("Error: Recvfrom Failure\n");
-		return;// (void*)FAILURE;
+		return;/* (void*)FAILURE; */
 	}
 	printf("Number of Blocks to be received %d\n", recv_message.seq_number);
 	
-	//printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), voidbuf);
+	/*printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), voidbuf);*/
 	memset(ackbuf, 0, sizeof(ackbuf));
 	strcpy(ackbuf,"ACK");		
 	if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&cli_addr, slen)==-1)
 	{
 		printf("Error: Sendto Failure\n");
-		return;// (void*)FAILURE;
+		return;/* (void*)FAILURE; */
 	}
 	
-	int num_of_messages  = atoi(recv_message.message);
+	num_of_messages = atoi(recv_message.message);
 	printf("atoi %d \n Receiving the rest of the packets\n",num_of_messages);
 	for(x=1;x <=num_of_messages;x++)
 	{
@@ -66,18 +67,18 @@ struct Send_message myrecv(void)
 		if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 		{	    	
 			printf("Error: Recvfrom Failure\n");
-			return;// (void*)FAILURE;
+			return;/* (void*)FAILURE; */
 		}
 		printf("Block Sequence Number Recd %d\n", recv_message.seq_number);
 		
 		printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), recv_message.message);
-		//strcat(final_string, recv_message.message);
+		/*strcat(final_string, recv_message.message);*/
 		memset(ackbuf, 0, sizeof(ackbuf));
 		strcpy(ackbuf,"ACK");		
 		if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&cli_addr, slen)==-1)
 		{
 			printf("Error: Sendto Failure\n");
-			return;// (void*)FAILURE;
+			return;/* (void*)FAILURE; */
 		}
 	}
 	

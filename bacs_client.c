@@ -147,12 +147,12 @@ void download(char* file_name, bool f, char* local_path, char* remote_path)
 {
   if(!f)
   {
-    void *ans;
+    /*struct Send_message ans;
     char filepath[1024];
     FILE *fp;
 
     printf("Downloading file '%s'..\n", file_name);
-    while((ans = myrecv())!=(void*)1 ||(ans = myrecv())!=(void*)2)
+    while((*ans = myrecv())!=(void*)1 || (*ans = myrecv())!=(void*)2)
     {
       fputs(ans, stdout);
       printf("\n");
@@ -164,7 +164,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path)
     fp = fopen(filepath,"w");
     fwrite(ans, 1, sizeof(ans), fp);
     fclose(fp);
-    printf("File downloaded to path: %s\n",local_path);
+    printf("File downloaded to path: %s\n",local_path);*/
   }
   else
   {   

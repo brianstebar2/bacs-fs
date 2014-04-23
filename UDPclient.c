@@ -1,4 +1,4 @@
-//UDPClient.c
+/*UDPClient.c*/
 
 
 #include <arpa/inet.h>
@@ -31,7 +31,7 @@ ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
 	char tot[3];
 	
 
-	//Timer variables
+	/*Timer variables*/
 	struct timeval timeout;
 	timeout.tv_sec = 5;
 	timeout.tv_usec = 0;
@@ -76,7 +76,7 @@ ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
 			rp += MESSAGE_LEN;
 		}
 
-		if (sendto(sockfd,	&send_message, sizeof(send_message), 0, (struct sockaddr*)&serv_addr, slen)==-1) //replacing buf with voidbuf
+		if (sendto(sockfd,	&send_message, sizeof(send_message), 0, (struct sockaddr*)&serv_addr, slen)==-1)  /*replacing buf with voidbuf*/
 		{
 			printf("sendto: Error\n\n");
 			return FAILURE;
@@ -84,12 +84,12 @@ ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
 		else
 			printf("sent: %s\n", send_message.message);
 		
-		//Configure a recieve timer
+		/*Configure a recieve timer*/
 		if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout,sizeof(timeout)) < 0)
 		{
 			printf("setsockopt: Error\n\n");
 		}
-		//Receive ACK from Server
+		/*Receive ACK from Server*/
 		if (recvfrom(sockfd, rcvbuf, BUFLEN, 0, (struct sockaddr*)&serv_addr, &slen)==-1)
 		{    
 			return RETRY;
@@ -97,7 +97,7 @@ ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
 		else
 		{
 			printf("Received response from server %s:%d:\t:%s\n\n",inet_ntoa(serv_addr.sin_addr),ntohs(serv_addr.sin_port), rcvbuf);
-			//return SUCCESS;
+			/*return SUCCESS;*/
 		}
 	}
 	
@@ -105,5 +105,5 @@ ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
 	
 
 	close(sockfd);
-	//free (rp);
+	/*free (rp);*/
 }

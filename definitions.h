@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 #include <uuid/uuid.h>
+#include <arpa/inet.h>
+
 
 
 
@@ -41,7 +43,23 @@
 #define DELETED 4
 
 /* Network stack constants */
+#define BUFLEN 1500
+#define MESSAGE_LEN 1496
+#define PORT 9930
 typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
+
+
+
+/* ======================== *
+ * NETWORK STACK STRUCTURES *
+ * ======================== */ 
+struct Send_message
+{
+  struct in_addr hostIP;
+  int port_number;
+  int seq_number;
+  char message[1496];
+};
 
 
 

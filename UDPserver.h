@@ -1,3 +1,6 @@
+#ifndef UDPSERVER_H
+#define UDPSERVER_H
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -7,21 +10,8 @@
 #include <stdlib.h> 
 #include <string.h>
 
-#define BUFLEN 1500
-#define MESSAGE_LEN 1496
-#define PORT 9930
-
-
-
-struct Send_message
-{
-	struct in_addr hostIP;
-	int port_number;
-	int seq_number;
-	char message[1496];
-};
-
-
-typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
+#include "definitions.h"
 
 struct Send_message myrecv(void);
+
+#endif /* UDPSERVER_H */
