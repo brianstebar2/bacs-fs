@@ -14,11 +14,11 @@ void send_file(char *path, char *IPaddr, uuid_t **uuids, uint64_t *num_uuids)
 	while(!feof(fp))
 	{
 		char *msg = 0;
-		uint32_t *msg_len = malloc(sizeof(uint32_t));
-		uuid_t *uuid = malloc(sizeof(uuid));;
-		uint32_t *size = malloc(sizeof(uint32_t));
+		uint64_t msg_len;
+		uuid_t uuid;
+		uint64_t size;
 		char *content = 0;
-		if(i>=*num_uuids)
+		if(i>=num_uuids)
 			printf("****************error num_uuids");
 		/* Set block initially to 0 */
 		memset(block,0,sizeof(block));
@@ -38,9 +38,6 @@ void send_file(char *path, char *IPaddr, uuid_t **uuids, uint64_t *num_uuids)
 		i++;
 
 		free(msg);
-		free(msg_length);
-		free(uuid);
-		free(size);
 		free(content);
 		i++;
 	}
