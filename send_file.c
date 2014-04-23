@@ -12,7 +12,7 @@ void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
 	size_t already_read_block;
 	int i=0;
 	fseek(fp,0,SEEK_SET);
-
+	int PN = 9930;
 	while(!feof(fp))
 	{
 		char *msg = 0;
@@ -20,6 +20,7 @@ void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
 		uuid_t uuid;
 		uint32_t size;
 		char *content = 0;
+		char *resp_msg = 0;
 		if(i>=num_uuids)
 			printf("****************error num_uuids");
 		/* Set block initially to 0 */
@@ -33,9 +34,16 @@ void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
 		already_read_block = fread(block, 1, DEFAULT_BLOCK_SIZE, fp);
 		create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &msg_len);
 		/* mysend(msg...) */
+		ErrorCode error = mysend(block, IPaddr, PN, DEFAULT_BLOCK_SIZE);
+		if(error == FAILURE || error == RETRY)
+			printf("error in send");
+		
 		/* Wait for server response */
 		/* myrecv(..., resp_msg); */
-		parse_msg_post_block_response(resp_msg, &uuid, &size, &content);
+		struct Receive_message resp;
+		resp = myrecv();
+		resp_msg = resp.msg;
+		parse_msg_post_block_response(resp_msg, &uuid);
 		if(get_header_resource(resp_msg) != BACS_FILE || 
      	   	   get_header_action(resp_msg) != POST ||
      	           get_header_type(resp_msg) != BACS_RESPONSE)
