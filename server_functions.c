@@ -26,7 +26,7 @@
  * Populates a block with the content in the message
  *
  * NOTE: this method allocates memory for 'response'; it is the responsiblity 
- * of the caller to free the allocation
+ *       of the caller to free the allocation
  */
 void handle_post_block(char *msg, char **response, uint64_t *response_len)
 {
@@ -74,8 +74,8 @@ void handle_post_block(char *msg, char **response, uint64_t *response_len)
  * 
  * Adds a file entry to the file system metadata
  *
- * NOTE: this method allocates memory for its return value; it is the 
- *       responsiblity of the caller to free the allocation
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
  */
 void handle_post_file(char *msg, char **response, uint64_t *response_len)
 {
@@ -97,6 +97,41 @@ void handle_post_file(char *msg, char **response, uint64_t *response_len)
 
   /* Clean up local data */
   free(filename);
+}
+
+
+
+/**
+ * handle_post_folder
+ * 
+ * Adds a folder entry to the file system metadata
+ *
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void handle_post_folder(char *msg, char **response, uint64_t *response_len)
+{
+  char *dirname;
+  meta_t *file_meta;
+
+  /* TODO: Check message parse for errors */
+  parse_msg_post_folder_request(msg, &dirname);
+
+  /* Create the new folder */
+  /* TODO: Check file_meta for error return code */
+  printf("Creating folder '%s'\n", dirname);
+  file_meta = add_folder(fs_metadata, dirname);
+  
+  printf("\nSERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
+  /* Create response indicicating success */
+  /* TODO: Check message creation for errors */
+  create_msg_post_folder_response(response, response_len);
+
+  /* Clean up local data */
+  free(dirname);
 }
 
 
@@ -152,6 +187,21 @@ void start_listening()
     print_file_meta(block_ptr->parent);
   }
 
+  /* Client: create a new folder */
+  create_msg_post_folder_request("/awesome/cool", &msg, &len);
+  print_msg(msg);
+
+  /* Server: create the new folder */
+  handle_post_folder(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  printf("\nSERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
+
 
 
 
@@ -175,6 +225,14 @@ void start_listening()
           case BACS_FILE:  
             switch(get_header_action(msg)) {
               case POST:  handle_post_file(msg, &resp, &resp_len); break;
+              default:    printf("Invalid message action; send error message.\n");
+            }
+            break;
+
+          /* FOLDER requests */
+          case BACS_FOLDER:  
+            switch(get_header_action(msg)) {
+              case POST:  handle_post_folder(msg, &resp, &resp_len); break;
               default:    printf("Invalid message action; send error message.\n");
             }
             break;
