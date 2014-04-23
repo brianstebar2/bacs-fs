@@ -192,7 +192,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
      	   get_header_type(msg) != BACS_RESPONSE)
     		die_with_error("upload_file - invalid message header");
 
-	  send_file(filepath, IPaddr, &uuids, num_uuids);
+	  /*send_file(filepath, IPaddr, &uuids, num_uuids);*/
 	  free(uuids);
 
     printf("\n...File uploaded to path: %s\n",remote_path);

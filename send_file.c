@@ -1,9 +1,11 @@
 /* SRiram
  * charmi */
 
+#include "die_with_error.h"
+#include "messages.h"
 #include "send_file.h"
 
-void send_file(char *path, char *IPaddr, uuid_t **uuids, uint64_t *num_uuids)
+void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t *num_uuids)
 {
 	FILE *fp = fopen(path,"r");
 	char block[SIZE];
@@ -16,7 +18,7 @@ void send_file(char *path, char *IPaddr, uuid_t **uuids, uint64_t *num_uuids)
 		char *msg = 0;
 		uint64_t msg_len;
 		uuid_t uuid;
-		uint64_t size;
+		uint32_t size;
 		char *content = 0;
 		if(i>=num_uuids)
 			printf("****************error num_uuids");
@@ -29,8 +31,8 @@ void send_file(char *path, char *IPaddr, uuid_t **uuids, uint64_t *num_uuids)
 				/* return EOF; */
 			}
 		already_read_block = fread(block, 1, SIZE, fp);
-		create_msg_post_block_request(uuids[i], SIZE, block, &msg, msg_len);
-		parse_msg_get_block_response(msg, uuid, size, &content);
+		create_msg_post_block_request(uuids[i], SIZE, block, &msg, &msg_len);
+		parse_msg_get_block_response(msg, &uuid, &size, &content);
 		if(get_header_resource(msg) != BACS_FILE || 
      	   	   get_header_action(msg) != POST ||
      	           get_header_type(msg) != BACS_RESPONSE)
