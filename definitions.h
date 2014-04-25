@@ -59,16 +59,18 @@ struct Send_message
   int port_number;
   int seq_number;
   char message[1496];
+  int size_of_blocks;
 };
 
-struct Receive_message
-{
-  struct in_addr hostIP;
-  int port_number;
-  int seq_number;
-  char message[1000000];
-  int size_of_block;
-};
+struct Node{
+	struct Node* previous;
+	struct Node* next;
+	long IP;
+	int PN;
+	int size_of_blocks;
+	char message[size_of_blocks];
+	int counter;
+}; 
 
 
 /* ========================= *
