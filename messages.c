@@ -189,7 +189,8 @@ uint8_t create_msg_get_file_response(meta_t *file_meta, char **msg,
  * create_msg_get_folder_meta_request
  *
  * Generates a message string requesting the list of files, folders, and
- * associated metadata within the specified folder
+ * associated metadata within the specified folder; Returns NO_ERROR or an error
+ * code
  *
  * dirname  - null-terminated string containing the fully-qualified path of the
  *            target directory
@@ -199,11 +200,11 @@ uint8_t create_msg_get_file_response(meta_t *file_meta, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_folder_meta_request(char *dirname, char **msg, 
-                                        uint64_t *msg_len)
+uint8_t create_msg_get_folder_meta_request(char *dirname, char **msg, 
+                                           uint64_t *msg_len)
 {
-  msg_with_single_element(GET, BACS_FOLDER, BACS_REQUEST, 
-                          dirname, (uint32_t)strlen(dirname), msg, msg_len);
+  return msg_with_single_element(GET, BACS_FOLDER, BACS_REQUEST, dirname, 
+    (uint32_t)strlen(dirname), msg, msg_len);
 }
 
 
@@ -212,7 +213,8 @@ void create_msg_get_folder_meta_request(char *dirname, char **msg,
  * create_msg_get_folder_meta_response
  *
  * Generates a message response string include the list basic_meta_t's for both
- * the files and folders contained in the specified meta_t
+ * the files and folders contained in the specified meta_t; returns NO_ERROR or
+ * an error code
  *
  * folder   - meta_t for the folder containing the metadata to send
  * msg      - (return val) pointer where the message string will be stored
@@ -221,8 +223,8 @@ void create_msg_get_folder_meta_request(char *dirname, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
-                                         uint64_t *msg_len)
+uint8_t create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
+                                            uint64_t *msg_len)
 {
   char *string;
   int index, i, num_metas;
@@ -255,8 +257,7 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
 
   /* Allocate memory for the message */
   string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_get_folder_meta_response - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, num_chars*sizeof(char));
 
   /* Slap a header on the message */
@@ -297,6 +298,8 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -967,7 +970,7 @@ void parse_msg_get_file_response(char *msg, basic_block_t **blocks,
 /**
  * parse_msg_get_folder_meta_request
  *
- * Extracts the folder name from the request
+ * Extracts the folder name from the request; returns NO_ERROR or an error code
  *
  * msg      - the message to parse
  * dirname  - (return val) pointer to string where folder name should be stored
@@ -975,9 +978,9 @@ void parse_msg_get_file_response(char *msg, basic_block_t **blocks,
  * NOTE: this method allocates memory for 'dirname'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_get_folder_meta_request(char *msg, char **dirname)
+uint8_t parse_msg_get_folder_meta_request(char *msg, char **dirname)
 {
-  parse_msg_single_string(msg, GET, BACS_FOLDER, BACS_REQUEST, dirname);
+  return parse_msg_single_string(msg, GET, BACS_FOLDER, BACS_REQUEST, dirname);
 }
 
 

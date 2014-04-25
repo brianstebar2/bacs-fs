@@ -40,7 +40,7 @@ void handle_get_block(char *msg, char **response, uint64_t *response_len)
   err_code = parse_msg_get_block_request(msg, &uuid);
   if(err_code != NO_ERROR) {
     create_msg_error(GET, BACS_BLOCK, err_code, response, response_len);
-    goto cleanup_uuid_string;
+    goto finish;
   }
     
   /* Look up the block and retrieve its content */
@@ -69,6 +69,7 @@ void handle_get_block(char *msg, char **response, uint64_t *response_len)
   /* Clean up local data */
   cleanup_block_content: free(block_content);
   cleanup_uuid_string:   free(uuid_string);
+  finish: /* do nothing */;
 }
 
 
@@ -90,7 +91,7 @@ void handle_get_file(char *msg, char **response, uint64_t *response_len)
   /* Check message parse for errors */
   err_code = parse_msg_get_file_request(msg, &filename);
   if(err_code != NO_ERROR) {
-    create_msg_error(GET, BACS_BLOCK, err_code, response, response_len);
+    create_msg_error(GET, BACS_FILE, err_code, response, response_len);
     goto finish;
   }
 
@@ -98,7 +99,7 @@ void handle_get_file(char *msg, char **response, uint64_t *response_len)
   printf("Retrieving metadata for file '%s'\n", filename);
   err_code = find_meta(fs_metadata, filename, BACS_FILE, &file_meta);
   
-  /*Check lookup for errors */
+  /* Check lookup for errors */
   if(err_code != NO_ERROR) {
     create_msg_error(GET, BACS_FILE, err_code, response, response_len);
     goto cleanup;
@@ -135,21 +136,41 @@ void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len)
 {
   char *dirname;
   meta_t *folder_meta;
+  uint8_t err_code;
 
-  /* TODO: Check message parse for errors */
-  parse_msg_get_folder_meta_request(msg, &dirname);
+  /* Check message parse for errors */
+  err_code = parse_msg_get_folder_meta_request(msg, &dirname);
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_FOLDER, err_code, response, response_len);
+    goto finish;
+  }
 
   /* Lookup target folder */
-  /* TODO: Check file_meta for error return code */
+  /* Check file_meta for error return code */
   printf("Retrieving metadata for folder '%s'\n", dirname);
-  find_meta(fs_metadata, dirname, BACS_FOLDER, &folder_meta);
+  err_code = find_meta(fs_metadata, dirname, BACS_FOLDER, &folder_meta);
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_FOLDER, err_code, response, response_len);
+    goto cleanup;
+  }
+  if(folder_meta == NULL) {
+    create_msg_error(GET, BACS_FOLDER, ERR_FOLDER_NOT_FOUND, 
+      response, response_len);
+    goto cleanup;
+  }
 
   /* Create response containing metadata for folder */
-  /* TODO: Check message creation for errors */
-  create_msg_get_folder_meta_response(folder_meta, response, response_len);
+  /* Check message creation for errors */
+  err_code = create_msg_get_folder_meta_response(folder_meta, response, 
+    response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_FOLDER, err_code, response, response_len);
+    goto cleanup;
+  }
 
   /* Clean up local data */
-  free(dirname);
+  cleanup: free(dirname);
+  finish: /* do nothing */;
 }
 
 
@@ -386,13 +407,21 @@ void start_listening()
   // free(msg);
   // free(resp);
 
-  /* Request a bogus file */
-  create_msg_get_file_request("/nonexistent.mp4", &msg, &len);
+  // /* Request a bogus file */
+  // create_msg_get_file_request("/nonexistent.mp4", &msg, &len);
+  // print_msg(msg);
+  // handle_get_file(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(resp);
+  // free(msg);
+
+  /* Lookup a bogus directory */
+  create_msg_get_folder_meta_request("/ghost_folder", &msg, &len);
   print_msg(msg);
-  handle_get_file(msg, &resp, &resp_len);
+  handle_get_folder_meta(msg, &resp, &resp_len);
   print_msg(resp);
-  free(resp);
   free(msg);
+  free(resp);
 
 
 

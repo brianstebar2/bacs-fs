@@ -21,6 +21,7 @@
 
 #define ERR_BLOCK_NOT_FOUND 2
 #define ERR_FILE_NOT_FOUND 3
+#define ERR_FOLDER_NOT_FOUND 4
 #define ERR_MEM_ALLOC 1
 
 
