@@ -19,5 +19,9 @@
 bacs_client
 bacs_server
 
+# Temporary files
+*.c~
+*.h~
+
 # Data folder
 bacs_data/

@@ -70,13 +70,13 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
                                   char **msg, uint64_t *msg_len);
 void create_msg_post_folder_request(char *foldername, char **msg, 
                                     uint64_t *msg_len);
-void parse_msg_get_block_request(char *msg, uuid_t *uuid);
+uint8_t parse_msg_get_block_request(char *msg, uuid_t *uuid);
 void parse_msg_get_file_request(char *msg, char **filename);
 void parse_msg_get_folder_meta_request(char *msg, char **dirname);
 void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
                                   char **content);
 void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size);
-void parse_msg_post_folder_request(char *msg, char **foldername);
+uint8_t parse_msg_post_folder_request(char *msg, char **foldername);
 
 /* RESPONSES */
 void create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
@@ -99,6 +99,10 @@ void parse_msg_post_block_response(char *msg, uuid_t *uuid);
 void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids);
 void parse_msg_post_folder_response(char *msg);
 
+/* ERRORS */
+void create_msg_error(uint8_t action, uint8_t resource, uint8_t err_code, 
+                      char **msg, uint64_t *msg_len);
+uint8_t parse_msg_error(char *msg, char **err_msg);
 
 
 /* ================ *
@@ -107,13 +111,13 @@ void parse_msg_post_folder_response(char *msg);
 void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
                     uuid_t uuid, uint32_t size, char *content,
                     char **msg, uint64_t *msg_len);
-void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
-                             void *element, uint32_t element_len, char **msg, 
-                             uint64_t *msg_len);
+uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
+                                void *element, uint32_t element_len, char **msg, 
+                                uint64_t *msg_len);
 void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type, 
                      uuid_t *uuid, uint32_t *size, char **content);
-void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
-                             uint8_t type, char **str);
+uint8_t parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
+                                uint8_t type, char **str);
 
 
 
@@ -137,5 +141,8 @@ void print_msg_get_folder_meta_response(char *msg);
 void print_msg_post_block_response(char *msg);
 void print_msg_post_file_response(char *msg);
 void print_msg_post_folder_response(char *msg);
+
+/* ERRORS */
+void print_msg_error(char *msg);
 
 #endif /* MESSAGES_H */

@@ -9,6 +9,7 @@ void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
 {
 	FILE *fp = fopen(path,"r");
 	char block[DEFAULT_BLOCK_SIZE];
+	char *resp_msg;
 	size_t already_read_block;
 	int i=0;
 	fseek(fp,0,SEEK_SET);
@@ -35,7 +36,7 @@ void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
 		/* mysend(msg...) */
 		/* Wait for server response */
 		/* myrecv(..., resp_msg); */
-		parse_msg_post_block_response(resp_msg, &uuid, &size, &content);
+		/*parse_msg_post_block_response(resp_msg, &uuid, &size, &content);*/
 		if(get_header_resource(resp_msg) != BACS_FILE || 
      	   	   get_header_action(resp_msg) != POST ||
      	           get_header_type(resp_msg) != BACS_RESPONSE)

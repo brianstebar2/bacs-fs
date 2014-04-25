@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "die_with_error.h"
+#include "errors.h"
 #include "messages.h"
 
 
@@ -24,17 +25,25 @@
  *
  * Generates a message string containing an error message
  *
- * err_msg  - error message string to send
+ * action   - action of the erroring request
+ * resource - resource of the erroring request
+ * err_msg  - null-terminated string containing the error message
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
  * 
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_error(uuid_t uuid, char **msg, uint64_t *msg_len)
+void create_msg_error(uint8_t action, uint8_t resource, uint8_t err_code, 
+                      char **msg, uint64_t *msg_len)
 {
-  /*msg_with_single_element(GET, BACS_BLOCK, BACS_REQUEST, uuid, sizeof(uuid_t), 
-                          msg, msg_len);*/
+  uint8_t status;
+  status = msg_with_single_element(action, resource, BACS_ERROR, 
+    (char *)error_message(err_code), strlen(error_message(err_code)), 
+    msg, msg_len);
+
+  if(status != NO_ERROR) 
+    die_with_error("create_msg_error - msg_with_single_element failed");
 }
 
 
@@ -698,7 +707,8 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
 /**
  * msg_with_single_element
  *
- * Populates a message string with the specified headers and single data element
+ * Populates a message string with the specified headers and single data element;
+ * Returns either NO_ERROR or an error code
  *
  * action      - message action identifier
  * resource    - target resource for this message
@@ -711,9 +721,9 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
-                             void *element, uint32_t element_len, char **msg, 
-                             uint64_t *msg_len)
+uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
+                                void *element, uint32_t element_len, char **msg, 
+                                uint64_t *msg_len)
 {
   char *string;
   int index;
@@ -726,7 +736,7 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
   /* Allocate memory for the message string */
   string = calloc(num_chars, sizeof(char));
   if(string == NULL) 
-    die_with_error("msg_with_single_element- calloc failed");
+    return ERR_MEM_ALLOC;
   memset(string, 0, num_chars*sizeof(char));
 
   /* Slap a header on the message */
@@ -741,6 +751,8 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -800,20 +812,44 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
 
 
 /**
+ * parse_msg_error
+ *
+ * Extracts the error message from the message; Returns NO_ERROR or error code
+ *
+ * msg     - the message to parse
+ * err_msg - (return val) pointer to a string where the error message should be
+ *           stored
+ * 
+ * NOTE: this method allocates memory for 'err_msg'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+uint8_t parse_msg_error(char *msg, char **err_msg)
+{
+  return parse_msg_single_string(msg, get_header_action(msg), 
+    get_header_resource(msg), BACS_ERROR, err_msg);
+}
+
+
+
+/**
  * parse_msg_get_block_request
  *
- * Extracts the UUID of the block from the request
+ * Extracts the UUID of the block from the request; Returns NO_ERROR or an error
+ * code
  *
  * msg     - the message to parse
  * uuid    - (return val) pointer to uuid_t where UUID should be written
  */
-void parse_msg_get_block_request(char *msg, uuid_t *uuid)
+uint8_t parse_msg_get_block_request(char *msg, uuid_t *uuid)
 {
   char *str_uuid;
   uuid_t *msg_uuid;
+  uint8_t err_code;
 
   /* Get UUID encoded as a string from message */
-  parse_msg_single_string(msg, GET, BACS_BLOCK, BACS_REQUEST, &str_uuid);
+  err_code = parse_msg_single_string(msg, GET, BACS_BLOCK, BACS_REQUEST, 
+                                     &str_uuid);
+  if(err_code != NO_ERROR) return err_code;
 
   /* Extract UUID from string */
   msg_uuid = (uuid_t *)str_uuid;
@@ -821,6 +857,8 @@ void parse_msg_get_block_request(char *msg, uuid_t *uuid)
 
   /* Clean up */
   free(str_uuid);
+
+  return NO_ERROR;
 }
 
 
@@ -1143,7 +1181,8 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
 /**
  * parse_msg_post_folder_request
  *
- * Extracts the name of the new folder from the request
+ * Extracts the name of the new folder from the request; Returns NO_ERROR or an
+ * error code
  *
  * msg        - the message to parse
  * foldername - (return val) pointer to a string where the new folder's name 
@@ -1152,9 +1191,10 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
  * NOTE: this method allocates memory for 'foldername'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_post_folder_request(char *msg, char **foldername)
+uint8_t parse_msg_post_folder_request(char *msg, char **foldername)
 {
-  parse_msg_single_string(msg, POST, BACS_FOLDER, BACS_REQUEST, foldername);
+  return parse_msg_single_string(msg, POST, BACS_FOLDER, BACS_REQUEST, 
+                                 foldername);
 }
 
 
@@ -1176,7 +1216,8 @@ void parse_msg_post_folder_response(char *msg)
 /**
  * parse_msg_single_string
  *
- * Parses a message string with the specified headers containing a single string
+ * Parses a message string with the specified headers containing a single string;
+ * Returns NO_ERROR or an error code
  *
  * msg      - the message to parse
  * action   - message action identifier
@@ -1187,8 +1228,8 @@ void parse_msg_post_folder_response(char *msg)
  * NOTE: this method allocates memory for 'str'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
-                             uint8_t type, char **str)
+uint8_t parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
+                                uint8_t type, char **str)
 {
   char *string;
   uint32_t string_len;
@@ -1208,8 +1249,7 @@ void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource,
     /* Allocate memory for the string; Add one more char to the end for a 
      * null terminator */
     string = calloc(string_len + 1, sizeof(char));
-    if(string == NULL) 
-      die_with_error("parse_msg_single_string - calloc failed");
+    if(string == NULL) return ERR_MEM_ALLOC;
     memset(string, 0, (string_len + 1) * sizeof(char));
 
     /* Extract string from message */
@@ -1217,6 +1257,8 @@ void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource,
     strncpy(string, &msg[index], string_len);
     *str = string;
   }
+
+  return NO_ERROR;
 }
 
 
@@ -1309,12 +1351,29 @@ void print_msg(char *msg)
         default: printf("UNKNOWN RESOURCE");
       }
 
-      break;      
+      break;
+
+    case BACS_ERROR: print_msg_error(msg); break;  
 
     default: printf("UNKNOWN MESSAGE TYPE");
   }
 
   printf("\n");
+}
+
+
+
+/**
+ * print_msg_error
+ *
+ * DEBUGGING; Prints out contents of error messages in human-readable format
+ */
+void print_msg_error(char *msg)
+{
+  char *err_msg;
+  parse_msg_error(msg, &err_msg);
+  printf("%s\n", err_msg);
+  free(err_msg);
 }
 
 

@@ -14,6 +14,7 @@
 
 #include "blocks.h"
 #include "common.h"
+#include "errors.h"
 #include "file_metadata.h"
 #include "messages.h"
 #include "server_functions.h"
@@ -33,15 +34,28 @@ void handle_get_block(char *msg, char **response, uint64_t *response_len)
   uuid_t uuid;
   block_t *block_ptr;
   char *uuid_string, *block_content;
+  uint8_t err_code;
 
-  /* TODO: Check message parse for errors */
-  parse_msg_get_block_request(msg, &uuid);
+  /* Check message parse for errors */
+  err_code = parse_msg_get_block_request(msg, &uuid);
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_BLOCK, err_code, response, response_len);
+    return;
+  }
 
-  /* Look up the block and retrieve its content */
-  /* TODO: Check lookup for errors */
+
   uuid_string = uuid_str(uuid);
   printf("Retrieving content for block %s \n", uuid_string);
+
+  /* Look up the block and retrieve its content */
+  /* Check lookup for errors */
   block_ptr = find_block(uuid);
+  if(block_ptr == NULL) {
+    create_msg_error(GET, BACS_BLOCK, ERR_BLOCK_NOT_FOUND, 
+                     response, response_len);
+    free(uuid_string);
+    return;
+  }
   block_content = get_block_content(block_ptr);
 
   /* Create response containing block content */
@@ -244,11 +258,12 @@ void start_listening()
 
 
 
-  // /* Debugging crap... */
-  // uuid_t *uuids;
-  // uint64_t len, num_uuids, num_blocks, i;
-  // meta_t *file_meta;
-  // basic_block_t *basic_blocks;
+  /* Debugging crap... */
+  uuid_t *uuids;
+  uint64_t len, num_uuids, num_blocks, i;
+  meta_t *file_meta;
+  basic_block_t *basic_blocks;
+  uuid_t bogus_uuid;
 
   // /* Client: Send a request to upload a new file */
   // create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
@@ -294,7 +309,7 @@ void start_listening()
   // print_meta_tree(fs_metadata, "");
   // printf("\n");
 
-  //  Add another file to the file system 
+  // /* Add another file to the file system */
   // file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
   // printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
 
@@ -339,6 +354,15 @@ void start_listening()
   //   free(resp);
   // }
 
+  /* Now let's test some error messages */
+  /* Try requesting a bogus block */
+  uuid_generate(bogus_uuid);
+  create_msg_get_block_request(bogus_uuid, &msg, &len);
+  print_msg(msg);
+  handle_get_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
 
 
@@ -347,57 +371,57 @@ void start_listening()
 
   /* Handle incoming messages */
   /*while(msg_struct = myrecv()) {*/
-  while(1) {
-    switch(get_header_type(msg)) {
-      case BACS_REQUEST: 
-        switch(get_header_resource(msg)) {
+  // while(1) {
+  //   switch(get_header_type(msg)) {
+  //     case BACS_REQUEST: 
+  //       switch(get_header_resource(msg)) {
           
-          /* BLOCK requests */
-          case BACS_BLOCK:  
-            switch(get_header_action(msg)) {
-              case GET:   handle_get_block(msg, &resp, &resp_len); break;
-              case POST:  handle_post_block(msg, &resp, &resp_len); break;
-              default:    printf("Invalid message action; send error message.\n");
-            }
+  //         /* BLOCK requests */
+  //         case BACS_BLOCK:  
+  //           switch(get_header_action(msg)) {
+  //             case GET:   handle_get_block(msg, &resp, &resp_len); break;
+  //             case POST:  handle_post_block(msg, &resp, &resp_len); break;
+  //             default:    printf("Invalid message action; send error message.\n");
+  //           }
 
-            break;
+  //           break;
 
-          /* FILE requests */
-          case BACS_FILE:  
-            switch(get_header_action(msg)) {
-              case GET:   handle_get_file(msg, &resp, &resp_len); break;
-              case POST:  handle_post_file(msg, &resp, &resp_len); break;
-              default:    printf("Invalid message action; send error message.\n");
-            }
-            break;
+  //         /* FILE requests */
+  //         case BACS_FILE:  
+  //           switch(get_header_action(msg)) {
+  //             case GET:   handle_get_file(msg, &resp, &resp_len); break;
+  //             case POST:  handle_post_file(msg, &resp, &resp_len); break;
+  //             default:    printf("Invalid message action; send error message.\n");
+  //           }
+  //           break;
 
-          /* FOLDER requests */
-          case BACS_FOLDER:  
-            switch(get_header_action(msg)) {
-              case GET:   handle_get_folder_meta(msg, &resp, &resp_len); break;
-              case POST:  handle_post_folder(msg, &resp, &resp_len); break;
-              default:    printf("Invalid message action; send error message.\n");
-            }
-            break;
+  //         /* FOLDER requests */
+  //         case BACS_FOLDER:  
+  //           switch(get_header_action(msg)) {
+  //             case GET:   handle_get_folder_meta(msg, &resp, &resp_len); break;
+  //             case POST:  handle_post_folder(msg, &resp, &resp_len); break;
+  //             default:    printf("Invalid message action; send error message.\n");
+  //           }
+  //           break;
 
-          default: printf("Unknown message resource; send error message.\n");
-        }
-        break;
+  //         default: printf("Unknown message resource; send error message.\n");
+  //       }
+  //       break;
 
-      default: printf("Unknown message type; send error message.\n");
-    }
+  //     default: printf("Unknown message type; send error message.\n");
+  //   }
 
 
-    /* Send response if necessary */
-    if(resp_len > 0) {
-      /* mysend(msg_src_ip, response, response_len); */
-      print_msg(resp);
-    }
+  //   /* Send response if necessary */
+  //   if(resp_len > 0) {
+  //     /* mysend(msg_src_ip, response, response_len); */
+  //     print_msg(resp);
+  //   }
 
-    /* Clean up request and response */    
-    free(msg);
-    free(resp);
-    msg = NULL;
-    resp = NULL;
-  }
+  //   /* Clean up request and response */    
+  //   free(msg);
+  //   free(resp);
+  //   msg = NULL;
+  //   resp = NULL;
+  // }
 }

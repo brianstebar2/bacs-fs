@@ -12,7 +12,7 @@ LIBS_DIRS =
 CPP_FLAGS = -Wall -pedantic
 LIBS      = -luuid -lm
 
-COMMON_SRC = common.c crc32.c die_with_error.c messages.c UDPclient.c UDPserver.c
+COMMON_SRC = common.c crc32.c die_with_error.c errors.c messages.c UDPclient.c UDPserver.c
 COMMON_OBJ = $(patsubst %.c,%.o,$(COMMON_SRC))
 SERVER_SRC = bacs_server.c blocks.c file_metadata.c server_functions.c
 SERVER_OBJ = $(patsubst %.c,%.o,$(SERVER_SRC))
