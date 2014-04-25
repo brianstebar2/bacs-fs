@@ -71,7 +71,7 @@ void create_msg_get_block_request(uuid_t uuid, char **msg, uint64_t *msg_len)
 /**
  * create_msg_get_block_response
  *
- * Generates a message string return a block
+ * Generates a message string return a block; Returns NO_ERROR or an error code
  *
  * uuid    - UUID of the block being returned
  * size    - number of bytes in the block
@@ -82,10 +82,10 @@ void create_msg_get_block_request(uuid_t uuid, char **msg, uint64_t *msg_len)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
-                                   char **msg, uint64_t *msg_len)
+uint8_t create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
+                                      char **msg, uint64_t *msg_len)
 {
-  msg_with_block(GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content, 
+  return msg_with_block(GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content, 
                  msg, msg_len);
 }
 
@@ -649,7 +649,8 @@ const char *get_header_type_string(uint8_t type)
 /**
  * msg_with_block
  *
- * Populates a message string with the specified headers and a block
+ * Populates a message string with the specified headers and a block; Returns
+ * NO_ERROR or an error code
  *
  * action   - message action identifier
  * resource - target resource for this message
@@ -663,9 +664,9 @@ const char *get_header_type_string(uint8_t type)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
-                    uuid_t uuid, uint32_t size, char *content,
-                    char **msg, uint64_t *msg_len)
+uint8_t  msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
+                       uuid_t uuid, uint32_t size, char *content,
+                       char **msg, uint64_t *msg_len)
 {
   char *string;
   uint32_t index;
@@ -679,8 +680,7 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
 
   /* Allocate memory for the message string and initialize it */
   string = calloc(*msg_len, sizeof(char));
-  if(string == NULL) 
-    die_with_error("msg_with_block - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, *msg_len * sizeof(char));
 
   /* Slap a header on the message */
@@ -700,6 +700,8 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
 
   /* Return the finished message */
   *msg = string;
+
+  return NO_ERROR;
 }
 
 

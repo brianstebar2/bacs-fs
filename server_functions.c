@@ -40,32 +40,35 @@ void handle_get_block(char *msg, char **response, uint64_t *response_len)
   err_code = parse_msg_get_block_request(msg, &uuid);
   if(err_code != NO_ERROR) {
     create_msg_error(GET, BACS_BLOCK, err_code, response, response_len);
-    return;
+    goto cleanup_uuid_string;
   }
-
-
+    
+  /* Look up the block and retrieve its content */
   uuid_string = uuid_str(uuid);
   printf("Retrieving content for block %s \n", uuid_string);
-
-  /* Look up the block and retrieve its content */
+  
   /* Check lookup for errors */
   block_ptr = find_block(uuid);
   if(block_ptr == NULL) {
     create_msg_error(GET, BACS_BLOCK, ERR_BLOCK_NOT_FOUND, 
                      response, response_len);
-    free(uuid_string);
-    return;
+    goto cleanup_uuid_string;
   }
   block_content = get_block_content(block_ptr);
 
   /* Create response containing block content */
-  /* TODO: Check message creation for errors */
-  create_msg_get_block_response(block_ptr->uuid, block_ptr->size, block_content, 
-                                response, response_len);
+  err_code = create_msg_get_block_response(block_ptr->uuid, block_ptr->size, 
+    block_content, response, response_len);
   
+  /* Check message creation for errors */
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_BLOCK, err_code, response, response_len);
+    goto cleanup_block_content;
+  }
+
   /* Clean up local data */
-  free(uuid_string);
-  free(block_content);
+  cleanup_block_content: free(block_content);
+  cleanup_uuid_string:   free(uuid_string);
 }
 
 
