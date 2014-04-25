@@ -24,6 +24,7 @@ const char *error_message(uint8_t err_code)
 
   switch(err_code) {
     case ERR_BLOCK_NOT_FOUND: msg = "Block not found."; break;
+    case ERR_FILE_NOT_FOUND:  msg = "File not found."; break;
     case ERR_MEM_ALLOC: 
       msg = "Server experienced a memory allocation error."; break;
 

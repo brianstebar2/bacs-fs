@@ -18,6 +18,7 @@
 #include "blocks.h"
 #include "common.h"
 #include "die_with_error.h"
+#include "errors.h"
 #include "file_metadata.h"
 
 
@@ -40,7 +41,7 @@
 meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
 {
   char *lower_path, **path_parts;
-  meta_t *current_folder = root, *new_file;
+  meta_t *current_folder = root, *new_file, *old_file;
   uint64_t i = 0;
 
   /* Make sure path starts with a '/' */
@@ -48,7 +49,9 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
     die_with_error("add_file_meta - invalid path specified");
 
   /* Make sure we the file doesn't already exist */
-  if(find_meta(current_folder, path, BACS_FILE_TYPE) != NULL)
+  /* TODO: Check find_meta for errors */
+  find_meta(current_folder, path, BACS_FILE_TYPE, &old_file);
+  if(old_file != NULL)
     die_with_error("add_file_meta - file already exists");
 
   /* Parse full path contained in name */
@@ -117,7 +120,8 @@ meta_t *add_folder(meta_t *root, char *path)
     die_with_error("add_folder - invalid path specified");
 
   /* If the folder already exists, we have nothing to do */
-  subfolder = find_meta(current_folder, path, BACS_FOLDER_TYPE);
+  /* TODO: Check find_meta for error */
+  find_meta(current_folder, path, BACS_FOLDER_TYPE, &subfolder);
   if(subfolder != NULL) return subfolder;
 
   /* Parse full path contained in name */
@@ -369,10 +373,13 @@ meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
 /**
  * find_meta
  *
- * Returns a pointer to the meta_t of the target subfolder/file within the
- * 'folder' or any of its children if it exists; Returns NULL otherwise
+ * Locates the meta_t of the target subfolder/file within the 'folder' or any of 
+ * its children if it exists; if the target is found, 'return_meta' is assigned
+ * its pointer; Otherwise, 'return_meta' is set to NULL; Returns NO_ERROR or an
+ * error code
  */
-meta_t *find_meta(meta_t *folder, char *path, uint8_t target_type)
+uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type, 
+                  meta_t **return_meta)
 {
   int i = 0;
   meta_t *current_meta = folder;
@@ -387,6 +394,7 @@ meta_t *find_meta(meta_t *folder, char *path, uint8_t target_type)
      for a null terminator */
   while(path_parts[i+1]) {
     if(current_meta != NULL) {
+      /* TODO: Check find_child_meta for error codes */
       current_meta = find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE);
     }
 
@@ -400,11 +408,14 @@ meta_t *find_meta(meta_t *folder, char *path, uint8_t target_type)
 
   /* Check for the last token based on the target type */
   if(current_meta != NULL) {
+    /* TODO: Check find_child_meta for error codes */
     current_meta = find_child_meta(current_meta, path_parts[i], target_type);
   }
 
   free(path_parts[i]);
-  return current_meta;
+  *return_meta = current_meta;
+
+  return NO_ERROR;
 }
 
 

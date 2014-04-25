@@ -85,21 +85,40 @@ void handle_get_file(char *msg, char **response, uint64_t *response_len)
 {
   char *filename;
   meta_t *file_meta;
+  uint8_t err_code;
 
-  /* TODO: Check message parse for errors */
-  parse_msg_get_file_request(msg, &filename);
+  /* Check message parse for errors */
+  err_code = parse_msg_get_file_request(msg, &filename);
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_BLOCK, err_code, response, response_len);
+    goto finish;
+  }
 
   /* Lookup file to download */
-  /* TODO: Check lookup for errors */
   printf("Retrieving metadata for file '%s'\n", filename);
-  file_meta = find_meta(fs_metadata, filename, BACS_FILE);
+  err_code = find_meta(fs_metadata, filename, BACS_FILE, &file_meta);
+  
+  /*Check lookup for errors */
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
+  if(file_meta == NULL) {
+    create_msg_error(GET, BACS_FILE, ERR_FILE_NOT_FOUND, response, response_len);
+    goto cleanup;
+  }
 
   /* Create response containing UUIDs and IP addresses for file's blocks */
-  /* TODO: Check message creation for errors */
-  create_msg_get_file_response(file_meta, response, response_len);
+  /* Check message creation for errors */
+  err_code = create_msg_get_file_response(file_meta, response, response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(GET, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
 
   /* Clean up local data */
-  free(filename);
+  cleanup: free(filename);
+  finish: /* do nothing */;
 }
 
 
@@ -123,7 +142,7 @@ void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len)
   /* Lookup target folder */
   /* TODO: Check file_meta for error return code */
   printf("Retrieving metadata for folder '%s'\n", dirname);
-  folder_meta = find_meta(fs_metadata, dirname, BACS_FOLDER);
+  find_meta(fs_metadata, dirname, BACS_FOLDER, &folder_meta);
 
   /* Create response containing metadata for folder */
   /* TODO: Check message creation for errors */
@@ -357,17 +376,23 @@ void start_listening()
   //   free(resp);
   // }
 
-  /* Now let's test some error messages */
-  /* Try requesting a bogus block */
-  uuid_generate(bogus_uuid);
-  create_msg_get_block_request(bogus_uuid, &msg, &len);
+  // /* Now let's test some error messages */
+  // /* Try requesting a bogus block */
+  // uuid_generate(bogus_uuid);
+  // create_msg_get_block_request(bogus_uuid, &msg, &len);
+  // print_msg(msg);
+  // handle_get_block(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
+
+  /* Request a bogus file */
+  create_msg_get_file_request("/nonexistent.mp4", &msg, &len);
   print_msg(msg);
-  handle_get_block(msg, &resp, &resp_len);
+  handle_get_file(msg, &resp, &resp_len);
   print_msg(resp);
-  free(msg);
   free(resp);
-
-
+  free(msg);
 
 
 

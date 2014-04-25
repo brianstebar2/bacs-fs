@@ -116,7 +116,8 @@ void create_msg_get_file_request(char *filename, char **msg, uint64_t *msg_len)
  * create_msg_get_file_response
  *
  * Generates a message response string include the list of the file's block 
- * UUIDs and the list of server IPs storing each block
+ * UUIDs and the list of server IPs storing each block; Returns NO_ERROR or an
+ * error code
  *
  * file_meta - meta_t for the file containing the metadata to send
  * msg       - (return val) pointer where the message string will be stored
@@ -125,8 +126,8 @@ void create_msg_get_file_request(char *filename, char **msg, uint64_t *msg_len)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_file_response(meta_t *file_meta, char **msg, 
-                                  uint64_t *msg_len)
+uint8_t create_msg_get_file_response(meta_t *file_meta, char **msg, 
+                                     uint64_t *msg_len)
 {
   char *string;
   uint64_t index, i;
@@ -149,8 +150,7 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
 
   /* Allocate memory for the message */
   string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_get_file_response - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, num_chars*sizeof(char));
 
   /* Slap a header on the message */
@@ -179,6 +179,8 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -664,7 +666,7 @@ const char *get_header_type_string(uint8_t type)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-uint8_t  msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
+uint8_t msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
                        uuid_t uuid, uint32_t size, char *content,
                        char **msg, uint64_t *msg_len)
 {
@@ -889,7 +891,7 @@ void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size,
 /**
  * parse_msg_get_file_request
  *
- * Extracts the filename from the request
+ * Extracts the filename from the request; Returns NO_ERROR or an error code
  *
  * msg      - the message to parse
  * filename - (return val) pointer to string where filename should be stored
@@ -897,9 +899,9 @@ void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size,
  * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_get_file_request(char *msg, char **filename)
+uint8_t parse_msg_get_file_request(char *msg, char **filename)
 {
-  parse_msg_single_string(msg, GET, BACS_FILE, BACS_REQUEST, filename);
+  return parse_msg_single_string(msg, GET, BACS_FILE, BACS_REQUEST, filename);
 }
 
 

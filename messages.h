@@ -71,7 +71,7 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
 void create_msg_post_folder_request(char *foldername, char **msg, 
                                     uint64_t *msg_len);
 uint8_t parse_msg_get_block_request(char *msg, uuid_t *uuid);
-void parse_msg_get_file_request(char *msg, char **filename);
+uint8_t parse_msg_get_file_request(char *msg, char **filename);
 void parse_msg_get_folder_meta_request(char *msg, char **dirname);
 void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
                                   char **content);
@@ -81,8 +81,8 @@ uint8_t parse_msg_post_folder_request(char *msg, char **foldername);
 /* RESPONSES */
 uint8_t create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
                                       char **msg, uint64_t *msg_len);
-void create_msg_get_file_response(meta_t *file_meta, char **msg, 
-                                  uint64_t *msg_len);
+uint8_t create_msg_get_file_response(meta_t *file_meta, char **msg, 
+                                     uint64_t *msg_len);
 void create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
                                          uint64_t *msg_len);
 void create_msg_get_servers_response(char **msg, uint64_t *msg_len);
