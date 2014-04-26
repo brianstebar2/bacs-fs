@@ -23,10 +23,12 @@ const char *error_message(uint8_t err_code)
   const char *msg;
 
   switch(err_code) {
+    case ERR_BLOCK_NOT_DELETABLE: msg = "Block not ready for deletion."; break;
     case ERR_BLOCK_NOT_FOUND: msg = "Block not found."; break;
     case ERR_BLOCK_NOT_NEW: msg = "Block has already been populated."; break;
     case ERR_BLOCK_SIZE_MISMATCH:
       msg = "Content size didn't match the block's size."; break;
+    case ERR_FILE_BUSY: msg = "File is currently in use."; break;
     case ERR_FILE_EXISTS: msg = "File already exists."; break;
     case ERR_FILE_META_TYPE: 
       msg = "An invalid file metadata type was requested."; break;

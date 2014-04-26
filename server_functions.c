@@ -22,6 +22,120 @@
 
 
 /**
+ * handle_delete_file
+ * 
+ * Deletes the specified file
+ *
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void handle_delete_file(char *msg, char **response, uint64_t *response_len)
+{
+  char *filename;
+  meta_t *file_meta;
+  uint8_t err_code;
+
+  /* Check message parse for errors */
+  err_code = parse_msg_delete_file_request(msg, &filename);
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FILE, err_code, response, response_len);
+    goto finish;
+  }
+
+  /* Lookup file to delete */
+  printf("Deleting file '%s'\n", filename);
+  err_code = find_meta(fs_metadata, filename, BACS_FILE, &file_meta);
+  
+  /* Check lookup for errors */
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
+  if(file_meta == NULL) {
+    create_msg_error(DELETE, BACS_FILE, ERR_FILE_NOT_FOUND, response, 
+      response_len);
+    goto cleanup;
+  }
+
+  /* Delete the file */
+  err_code = destroy_meta_t(file_meta);
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
+
+  /* Create response indicating success; check message creation for errors */
+  err_code = create_msg_delete_file_response(response, response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
+
+  /* Clean up local data */
+  cleanup: free(filename);
+  finish: /* do nothing */;
+}
+
+
+
+/**
+ * handle_delete_folder
+ * 
+ * Deletes the specified folder
+ *
+ * NOTE: this method allocates memory for 'response'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+void handle_delete_folder(char *msg, char **response, uint64_t *response_len)
+{
+  char *foldername;
+  meta_t *folder_meta;
+  uint8_t err_code;
+
+  /* Check message parse for errors */
+  err_code = parse_msg_delete_folder_request(msg, &foldername);
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FOLDER, err_code, response, response_len);
+    goto finish;
+  }
+
+  /* Lookup folder to delete */
+  printf("Deleting folder '%s'\n", foldername);
+  err_code = find_meta(fs_metadata, foldername, BACS_FOLDER, &folder_meta);
+  
+  /* Check lookup for errors */
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FOLDER, err_code, response, response_len);
+    goto cleanup;
+  }
+  if(folder_meta == NULL) {
+    create_msg_error(DELETE, BACS_FOLDER, ERR_FILE_NOT_FOUND, response, 
+      response_len);
+    goto cleanup;
+  }
+
+  /* Delete the folder */
+  err_code = destroy_meta_t(folder_meta);
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FOLDER, err_code, response, response_len);
+    goto cleanup;
+  }
+
+  /* Create response indicating success; check message creation for errors */
+  err_code = create_msg_delete_folder_response(response, response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(DELETE, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
+
+  /* Clean up local data */
+  cleanup: free(foldername);
+  finish: /* do nothing */;
+}
+
+
+
+/**
  * handle_get_block
  * 
  * Returns the content of the specified block
@@ -442,6 +556,34 @@ void start_listening()
     free(resp);
   }
 
+  printf("SERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
+  /* Client: Request the deletion of a file */
+  create_msg_delete_file_request("/awesome/d.txt", &msg, &len);
+  print_msg(msg);
+  handle_delete_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  printf("SERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
+  /* Client: Request the deletion of a file */
+  create_msg_delete_folder_request("/awesome/bad", &msg, &len);
+  print_msg(msg);
+  handle_delete_folder(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  printf("SERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
+
   /* Now let's test some error messages */
   /* Try requesting a bogus block */
   uuid_generate(bogus_uuid);
@@ -539,6 +681,35 @@ void start_listening()
   free(resp);
   free(msg);
 
+  /* Test DELETE FILE errors */
+  /* Delete a file with relative path */
+  create_msg_delete_file_request("dumb.fil", &msg, &len);
+  print_msg(msg);
+  handle_delete_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  /* Delete a non-existent file */
+  create_msg_delete_file_request("/dumb.fil", &msg, &len);
+  print_msg(msg);
+  handle_delete_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  /* Test DELETE FOLDER errors */
+  /* Delete a folder with a file somewhere in its subtree being downloaded */
+  add_file_meta(fs_metadata, "/awesome/best/busy.txt", 2000, 0, &file_meta);
+  printf("Added /busy.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+  file_meta->status = DOWNLOADING;
+
+  create_msg_delete_folder_request("/awesome", &msg, &len);
+  print_msg(msg);
+  handle_delete_folder(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
 
 
@@ -563,10 +734,11 @@ void start_listening()
   //         /* FILE requests */
   //         case BACS_FILE:  
   //           switch(get_header_action(msg)) {
-  //             case GET:   handle_get_file(msg, &resp, &resp_len); break;
-  //             case POST:  handle_post_file(msg, &resp, &resp_len); break;
-  //             default:    create_msg_error(0, get_header_resource(msg),
-  //                           ERR_MSG_ACTION, &resp, &resp_len);
+  //             case DELETE: handle_delete_file(msg, &resp, &resp_len); break;
+  //             case GET:    handle_get_file(msg, &resp, &resp_len); break;
+  //             case POST:   handle_post_file(msg, &resp, &resp_len); break;
+  //             default:     create_msg_error(0, get_header_resource(msg),
+  //                            ERR_MSG_ACTION, &resp, &resp_len);
   //           }
   //           break;
 
@@ -589,7 +761,6 @@ void start_listening()
   //                ERR_MSG_TYPE, &resp, &resp_len);
   //   }
 
-
   //   /* Send response if necessary */
   //   if(resp_len > 0) {
   //     /* mysend(msg_src_ip, response, response_len); */
@@ -601,5 +772,7 @@ void start_listening()
   //   free(resp);
   //   msg = NULL;
   //   resp = NULL;
+
+  //   break;
   // }
 }

@@ -57,17 +57,16 @@ uint8_t create_block_t(block_t **return_block)
  * destroy_block_t
  *
  * Destroys and frees all memory in the target block_t; Deletes the block's 
- * backing file
+ * backing file; Returns NO_ERROR or an error code
  */
-void destroy_block_t(block_t *target)
+uint8_t destroy_block_t(block_t *target)
 {
   char *filename;
   block_t *prev = target->prev;
   block_t *next = target->next;
 
   /* Ensure that the target block has been marked as deleted */
-  if(target->status != DELETED) 
-    die_with_error("destroy_block_t - target not marked as deleted");
+  if(target->status != DELETED) return ERR_BLOCK_NOT_DELETABLE;
 
   /* Delete block file */
   filename = generate_block_filename(target);
@@ -77,10 +76,13 @@ void destroy_block_t(block_t *target)
   /* Remove block from block list */
   if(prev != NULL) prev->next = next;
   if(next != NULL) next->prev = prev;
+  if(all_blocks == target) all_blocks = next;
   all_blocks_num--;
 
   /* Nuke the target */
   free(target);
+
+  return NO_ERROR;
 }
 
 
@@ -198,4 +200,24 @@ uint8_t populate_block(block_t *target, char *content, int32_t content_size)
   target->status = READY;
 
   return NO_ERROR;
+}
+
+
+
+/**
+ * print_block_list
+ *
+ * DEBUGGING; Prints out a representation of blocks in the global list
+ */
+void print_block_list()
+{
+  block_t *current = all_blocks;
+
+  printf("Global block list contents (%" PRIu64 " blocks):\n", all_blocks_num);
+  while(current != NULL) {
+    char* uuid_string = uuid_str(current->uuid);
+    printf(" - %s: %s, %d bytes\n", uuid_string, status_string(current->status),
+      current->size);
+    free(uuid_string);
+  }
 }

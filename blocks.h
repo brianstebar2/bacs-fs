@@ -25,11 +25,12 @@ const char *block_data_path;
 
 
 uint8_t create_block_t(block_t **return_block);
-void destroy_block_t(block_t *target);
+uint8_t destroy_block_t(block_t *target);
 block_t *find_block(uuid_t uuid);
 char *generate_block_filename(block_t *target);
 char *get_block_content(block_t *target);
 uint8_t populate_block(block_t *target, char *content, int32_t content_size);
+void print_block_list();
 
 
 

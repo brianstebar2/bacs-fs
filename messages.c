@@ -49,6 +49,90 @@ void create_msg_error(uint8_t action, uint8_t resource, uint8_t err_code,
 
 
 /**
+ * create_msg_delete_file_request
+ *
+ * Generates a message string requesting the deletion of a file
+ *
+ * filename - null-terminated string containing the fully-qualified path of the
+ *            target file
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_delete_file_request(char *filename, char **msg, 
+                                    uint64_t *msg_len)
+{
+  msg_with_single_element(DELETE, BACS_FILE, BACS_REQUEST, filename, 
+                          strlen(filename), msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_delete_folder_response
+ *
+ * Generates a message response string signifying that a file was successfully 
+ * deleted; Returns NO_ERROR or an error code
+ *
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+uint8_t create_msg_delete_file_response(char **msg, uint64_t *msg_len)
+{
+  return msg_with_single_element(DELETE, BACS_FILE, BACS_RESPONSE, 
+                                 NULL, 0, msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_delete_folder_request
+ *
+ * Generates a message string requesting the deletion of a folder
+ *
+ * foldername - null-terminated string containing the fully-qualified path of 
+ *              the target folder
+ * msg        - (return val) pointer where the message string will be stored
+ * msg_len    - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_delete_folder_request(char *foldername, char **msg, 
+                                      uint64_t *msg_len)
+{
+  msg_with_single_element(DELETE, BACS_FOLDER, BACS_REQUEST, foldername, 
+                          strlen(foldername), msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_delete_folder_response
+ *
+ * Generates a message response string signifying that a folder was successfully 
+ * deleted; Returns NO_ERROR or an error code
+ *
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+uint8_t create_msg_delete_folder_response(char **msg, uint64_t *msg_len)
+{
+  return msg_with_single_element(DELETE, BACS_FOLDER, BACS_RESPONSE, 
+                                 NULL, 0, msg, msg_len);
+}
+
+
+
+/**
  * create_msg_get_block_request
  *
  * Generates a message string requesting to download a block
@@ -588,7 +672,7 @@ const char *get_header_action_string(uint8_t action)
     case GET:     return "GET"; break;
     case POST:    return "POST"; break;
     case PUT:     return "PUT"; break;
-    case DELETE:  return "DELTE"; break;
+    case DELETE:  return "DELETE"; break;
     default:      return "UNKNOWN";
   } 
 }
@@ -820,6 +904,71 @@ uint8_t parse_msg_block(char *msg, uint8_t action, uint8_t resource,
   /* TODO: Extract checksum from message */
 
   return NO_ERROR;
+}
+
+
+
+/**
+ * parse_msg_delete_file_request
+ *
+ * Extracts the filename from the request; Returns NO_ERROR or an error code
+ *
+ * msg      - the message to parse
+ * filename - (return val) pointer to string where filename should be stored
+ * 
+ * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+uint8_t parse_msg_delete_file_request(char *msg, char **filename)
+{
+  return parse_msg_single_string(msg, DELETE, BACS_FILE, BACS_REQUEST, filename);
+}
+
+
+
+/**
+ * parse_msg_delete_file_response
+ *
+ * Checks the headers from the response
+ *
+ * msg     - the message to parse
+ */
+void parse_msg_delete_file_response(char *msg)
+{
+  parse_msg_single_string(msg, DELETE, BACS_FILE, BACS_RESPONSE, NULL);
+}
+
+
+
+/**
+ * parse_msg_delete_file_request
+ *
+ * Extracts the foldername from the request; Returns NO_ERROR or an error code
+ *
+ * msg        - the message to parse
+ * foldername - (return val) pointer to string where foldername should be stored
+ * 
+ * NOTE: this method allocates memory for 'foldername'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+uint8_t parse_msg_delete_folder_request(char *msg, char **foldername)
+{
+  return parse_msg_single_string(msg, DELETE, BACS_FOLDER, BACS_REQUEST, 
+    foldername);
+}
+
+
+
+/**
+ * parse_msg_delete_folder_response
+ *
+ * Checks the headers from the response
+ *
+ * msg     - the message to parse
+ */
+void parse_msg_delete_folder_response(char *msg)
+{
+  parse_msg_single_string(msg, DELETE, BACS_FOLDER, BACS_RESPONSE, NULL);
 }
 
 
@@ -1304,32 +1453,30 @@ void print_msg(char *msg)
             case POST:  print_msg_post_block_request(msg); break;
             default:    printf("INVALID ACTION");
           }
-
           break;
 
         /* FILE requests */
         case BACS_FILE:  
           switch(get_header_action(msg)) {
-            case GET:   print_msg_get_file_request(msg); break;
-            case POST:  print_msg_post_file_request(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_file_request(msg); break;
+            case GET:    print_msg_get_file_request(msg); break;
+            case POST:   print_msg_post_file_request(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
 
         /* FOLDER requests */
         case BACS_FOLDER:  
           switch(get_header_action(msg)) {
-            case GET:  print_msg_get_folder_meta_request(msg); break;
-            case POST: print_msg_post_folder_request(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_folder_request(msg); break;
+            case GET:    print_msg_get_folder_meta_request(msg); break;
+            case POST:   print_msg_post_folder_request(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
 
         default: printf("UNKNOWN RESOURCE");
       }
-
       break;
 
     case BACS_RESPONSE:
@@ -1342,33 +1489,30 @@ void print_msg(char *msg)
             case POST:  print_msg_post_block_response(msg); break;
             default:    printf("INVALID ACTION");
           }
-
           break;
 
         /* FILE responses */
         case BACS_FILE:  
           switch(get_header_action(msg)) {
-            case GET:   print_msg_get_file_response(msg); break;
-            case POST:  print_msg_post_file_response(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_file_response(msg); break;
+            case GET:    print_msg_get_file_response(msg); break;
+            case POST:   print_msg_post_file_response(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
 
         /* FOLDER responses */
         case BACS_FOLDER:  
           switch(get_header_action(msg)) {
-            case GET:  print_msg_get_folder_meta_response(msg); break;
-            case POST: print_msg_post_folder_response(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_folder_response(msg); break;
+            case GET:    print_msg_get_folder_meta_response(msg); break;
+            case POST:   print_msg_post_folder_response(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
-
 
         default: printf("UNKNOWN RESOURCE");
       }
-
       break;
 
     case BACS_ERROR: print_msg_error(msg); break;  
@@ -1377,6 +1521,66 @@ void print_msg(char *msg)
   }
 
   printf("\n");
+}
+
+
+
+/**
+ * print_msg_delete_file_request
+ *
+ * DEBUGGING; Prints out contents of DELETE FILE request in human-readable 
+ * format
+ */
+void print_msg_delete_file_request(char *msg)
+{
+  char *filename;
+  parse_msg_delete_file_request(msg, &filename);
+  printf("%s\n", filename);
+  free(filename);
+}
+
+
+
+/**
+ * print_msg_delete_file_response
+ *
+ * DEBUGGING; Prints out contents of DELETE FILE response in human-readable 
+ * format
+ */
+void print_msg_delete_file_response(char *msg)
+{
+  parse_msg_delete_file_response(msg);
+  printf("SUCCESS");
+}
+
+
+
+/**
+ * print_msg_delete_folder_request
+ *
+ * DEBUGGING; Prints out contents of DELETE FOLDER request in human-readable 
+ * format
+ */
+void print_msg_delete_folder_request(char *msg)
+{
+  char *foldername;
+  parse_msg_delete_folder_request(msg, &foldername);
+  printf("%s\n", foldername);
+  free(foldername);
+}
+
+
+
+/**
+ * print_msg_delete_folder_response
+ *
+ * DEBUGGING; Prints out contents of DELETE FOLDER response in human-readable 
+ * format
+ */
+void print_msg_delete_folder_response(char *msg)
+{
+  parse_msg_delete_folder_response(msg);
+  printf("SUCCESS");
 }
 
 
@@ -1399,7 +1603,7 @@ void print_msg_error(char *msg)
 /**
  * print_msg_get_block_request
  *
- * DEBUGGING; Prints out contents of GET BACS_BLOCK request in human-readable 
+ * DEBUGGING; Prints out contents of GET BLOCK request in human-readable 
  * format
  */
 void print_msg_get_block_request(char *msg)
@@ -1418,7 +1622,7 @@ void print_msg_get_block_request(char *msg)
 /**
  * print_msg_get_block_response
  *
- * DEBUGGING; Prints out contents of GET BACS_BLOCK response in human-readable 
+ * DEBUGGING; Prints out contents of GET BLOCK response in human-readable 
  * format
  */
 void print_msg_get_block_response(char *msg)
@@ -1520,7 +1724,7 @@ void print_msg_get_folder_meta_response(char *msg)
 /**
  * print_msg_post_block_request
  *
- * DEBUGGING; Prints out contents of POST BACS_BLOCK request in human-readable 
+ * DEBUGGING; Prints out contents of POST BLOCK request in human-readable 
  * format
  */
 void print_msg_post_block_request(char *msg)
@@ -1544,7 +1748,7 @@ void print_msg_post_block_request(char *msg)
 /**
  * print_msg_post_block_response
  *
- * DEBUGGING; Prints out contents of POST BACS_BLOCK response in human-readable 
+ * DEBUGGING; Prints out contents of POST BLOCK response in human-readable 
  * format
  */
 void print_msg_post_block_response(char *msg)
@@ -1563,7 +1767,7 @@ void print_msg_post_block_response(char *msg)
 /**
  * print_msg_post_file_request
  *
- * DEBUGGING; Prints out contents of POST BACS_FILE request in human-readable 
+ * DEBUGGING; Prints out contents of POST FILE request in human-readable 
  * format
  */
 void print_msg_post_file_request(char *msg)
@@ -1580,7 +1784,7 @@ void print_msg_post_file_request(char *msg)
 /**
  * print_msg_post_file_response
  *
- * DEBUGGING; Prints out contents of POST BACS_FILE response in human-readable 
+ * DEBUGGING; Prints out contents of POST FILE response in human-readable 
  * format
  */
 void print_msg_post_file_response(char *msg)
@@ -1604,7 +1808,7 @@ void print_msg_post_file_response(char *msg)
 /**
  * print_msg_post_folder_request
  *
- * DEBUGGING; Prints out contents of POST BACS_FOLDER request in human-readable 
+ * DEBUGGING; Prints out contents of POST FOLDER request in human-readable 
  * format
  */
 void print_msg_post_folder_request(char *msg)
@@ -1620,7 +1824,7 @@ void print_msg_post_folder_request(char *msg)
 /**
  * print_msg_post_folder_response
  *
- * DEBUGGING; Prints out contents of POST BACS_FOLDER response in human-readable 
+ * DEBUGGING; Prints out contents of POST FOLDER response in human-readable 
  * format
  */
 void print_msg_post_folder_response(char *msg)

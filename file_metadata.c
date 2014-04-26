@@ -204,10 +204,12 @@ void add_to_meta_tree(meta_t *parent, meta_t *child)
   child->parent = parent;
   
   if(child->type == BACS_FOLDER_TYPE) {
-    child->next = parent->subfolders; 
+    child->next = parent->subfolders;
+    if(parent->subfolders != NULL) parent->subfolders->prev = child;
     parent->subfolders = child; 
   } else {
     child->next = parent->files;
+    if(parent->files != NULL) parent->files->prev = child;
     parent->files = child;
   }
 
@@ -337,6 +339,7 @@ uint8_t create_meta_t(meta_t **return_meta)
   result->subfolders = NULL;
 
   result->parent = NULL;
+  result->prev = NULL;
   result->next = NULL;
 
   /* Return initialized meta_t */
@@ -385,20 +388,92 @@ uint8_t create_subfolder(meta_t *parent, const char *name, meta_t **return_meta)
  *
  * Destroys and frees all memory in the target meta_t and recursively destroys
  * and frees its subfolder meta_t's, its file meta_t's, all its block_t's, and 
- * its strings
+ * its strings; Returns NO_ERROR or an error code
  */
-void destroy_meta_t(meta_t *target)
+uint8_t destroy_meta_t(meta_t *target)
 {
+  uint8_t err_code;
+  uint64_t i;
+  meta_t *current;
+
+  /* Make sure that neither this file nor its children are being downloaded */
+  /* NOTE: We want to make sure we detect errors before we actually delete
+   *       anything; half-way deleting a folder and then finding an error would 
+   *       be a Very Bad Thing (TM). */
+  if(find_busy_child(target) != NULL) return ERR_FILE_BUSY;
+
+  /* Destroy and free files and subfolders within target folder */
+  /* NOTE: Again, check for error codes before we make any permanent changes */
+  if(target->type == BACS_FOLDER_TYPE) {
+    /* Recursively destroy all subfolders within this folder */
+    current = target->subfolders;
+    while(current != NULL) {
+      err_code = destroy_meta_t(current);
+      if(err_code != NO_ERROR) return err_code;
+      current = current->next;
+    }
+
+    /* Recursively destroy all files in this folder */
+    current = target->files;
+    while(current != NULL) {
+      err_code = destroy_meta_t(current);
+      if(err_code != NO_ERROR) return err_code;
+      current = current->next;
+    }
+  }
+
+  /* Now we can start making changes; Mark file as and its blocks as deleted (so 
+   * nobody starts downloading it) */
+  target->status = DELETED;
+  for(i=0; i < target->num_blocks; i++) target->blocks[i]->status = DELETED;
+
   /* Destroy and free the blocks for target file */
+  /* TODO: The rest of this process could be done asynchronously to make 
+   * destroy_meta_t faster */
+  for(i=0; i < target->num_blocks; i++) {
+    /* Check for error codes */
+    err_code = destroy_block_t(target->blocks[i]);
+    if(err_code != NO_ERROR) return err_code;
+    target->blocks[i] = NULL;
+  }
 
-  /* Destroy and free files within target folder */
-
-  /* Destroy and free subfolders of target folder */
-
-  /* Update target parent's bookkeeping data */
+  /* Remove the file from the file tree */
+  remove_from_meta_tree(target);
 
   /* Nuke the target */
   free(target);
+
+  return NO_ERROR;
+}
+
+
+
+/**
+ * find_child_meta
+ *
+ * Returns the first meta_t in the tree with a status of DOWNLOADING
+ */
+meta_t *find_busy_child(meta_t *parent) 
+{
+  meta_t *result, *current;
+
+  /* Scan the files of this meta_t */
+  current = parent->files;
+  while(current != NULL) {
+    if(current->status == DOWNLOADING) return current;
+    current = current->next;
+  }
+
+  /* Scan the subfolders of this meta_t */
+  current = parent->subfolders;
+  while(current != NULL) {
+    result = find_busy_child(current);
+    if(result != NULL) return result;
+    current = current->next;
+  }
+
+  /* If we made it this far, we didn't find any busy meta_t's */
+  return NULL;
 }
 
 
@@ -449,6 +524,9 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
   int i = 0;
   meta_t *current_meta = folder;
   char *lower_path, **path_parts;
+
+  /* Make sure path starts with a '/' */
+  if(strncmp(path, "/", 1) != 0) return ERR_INVALID_PATH;
 
   /* Parse full path contained in name */
   lower_path = strtolower(path);
@@ -514,10 +592,13 @@ void print_file_meta(meta_t *file_meta)
   /* Print status of each block in the file */
   for(i=0; i < file_meta->num_blocks; i++) {
     block_t *block = file_meta->blocks[i];
-    char *uuid_string = uuid_str(block->uuid);
-    printf(" - %s: %s, %d bytes\n", uuid_string, status_string(block->status),
-      block->size);
-    free(uuid_string);
+    if(block != NULL) {
+      char *uuid_string = uuid_str(block->uuid);
+      printf(" - %s: %s, %d bytes\n", uuid_string, status_string(block->status),
+        block->size);
+      free(uuid_string);
+    }
+    else printf(" - (BLOCK NOT FOUND)\n");
   }
 
   printf("\n");
@@ -536,8 +617,9 @@ void print_meta_tree(meta_t *folder, const char *prefix)
   char *new_prefix;
 
   /* Print out this folder's name */
-  printf("%sv%d:%s - %s\n", prefix, folder->version, 
-    folder->name ? folder->name : "<root>", status_string(folder->status));
+  printf("%sv%d:FOLDER:%s - %s, %" PRIu64 " bytes\n", prefix, folder->version, 
+    folder->name ? folder->name : "<root>", status_string(folder->status),
+    folder->size);
 
   /* Generate new prefix for recursive calls */
   new_prefix = calloc(strlen(prefix) + 3, sizeof(char));
@@ -556,11 +638,62 @@ void print_meta_tree(meta_t *folder, const char *prefix)
   /* Print out this folder's files */
   ptr = folder->files;
   while(ptr != NULL) {
-    printf("%sv%d:%s - %s, %" PRIu64 " bytes, %" PRIu64 " blocks, %d replicas\n",
+    printf("%sv%d:FILE:%s - %s, %" PRIu64 " bytes, %" PRIu64 " blocks, %d replicas\n",
       new_prefix, ptr->version, ptr->name, status_string(ptr->status), 
       ptr->size, ptr->num_blocks, ptr->replicas);
     ptr = ptr->next;
   }
 
   free(new_prefix);
+}
+
+
+
+/**
+ * remove_from_meta_tree
+ *
+ * Removes 'target' from its file tree; updates all the bookeeping variables 
+ * of all the parents
+ *
+ * NOTE: NOT THREAD SAFE
+ */
+void remove_from_meta_tree(meta_t *target)
+{
+  meta_t *tmp = target->parent;
+  uint32_t version;
+
+  /* Find the file tree's root version number */
+  while(tmp) {
+    version = tmp->version;
+    tmp = tmp->parent;
+  }
+
+  /* Remove the target from its parent's children list */
+  if(target->prev != NULL) target->prev->next = target->next;
+  if(target->next != NULL) target->next->prev = target->prev;
+  if(target->parent != NULL) { /* Root node's parent will be NULL */
+    if(target->parent->files == target) 
+      target->parent->files = target->next;
+    if(target->parent->subfolders == target) 
+      target->parent->subfolders = target->next;
+  }
+
+  /* Update bookeeping data of all parents in the tree */
+  if(target->parent != NULL) {
+    if(target->type == BACS_FOLDER_TYPE) { 
+      target->parent->num_subfolders--; 
+    }
+    else { 
+      target->parent->num_files--;
+      target->parent->size = target->parent->size - target->size;
+    }
+  }
+
+  /* Increment the version throughout the tree */
+  version++;
+  tmp = target->parent;
+  while(tmp) {
+    tmp->version = version;
+    tmp = tmp->parent;
+  }
 }

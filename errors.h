@@ -19,9 +19,11 @@
  * =========== */ 
 #define NO_ERROR 0
 
+#define ERR_BLOCK_NOT_DELETABLE 15
 #define ERR_BLOCK_NOT_FOUND 2
 #define ERR_BLOCK_NOT_NEW 6
 #define ERR_BLOCK_SIZE_MISMATCH 7
+#define ERR_FILE_BUSY 14
 #define ERR_FILE_EXISTS 9
 #define ERR_FILE_META_TYPE 10
 #define ERR_FILE_NOT_FOUND 3

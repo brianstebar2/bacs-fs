@@ -128,6 +128,7 @@ typedef struct meta_s {
 
   /* TREE AND LINKED LIST POINTERS */
   struct meta_s *parent;  /* Parent folder (NULL if root) */
+  struct meta_s *prev;    /* Previous sibling in this folder */
   struct meta_s *next;    /* Next sibling in this folder */
 } meta_t;
 
