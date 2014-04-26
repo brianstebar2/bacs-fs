@@ -113,26 +113,31 @@ uint8_t add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas,
  * add_folder
  *
  * Adds the specified folder to the specified file metadata tree; creates all
- * folders in the path as nessary; returns a pointer to the new folder's meta_t 
- * structure
+ * folders in the path as nessary; Assigns a pointer to the new folder's meta_t 
+ * structure to 'return_meta'; Returns NO_ERROR or an error code
  *
  * root      - the root of the metadata tree that will contain the new metadata
  * path      - the target fully-qualified path (including the file's name)
+ * return_meta - (return value) pointer to the new folder's meta_t
  */
-meta_t *add_folder(meta_t *root, char *path)
+uint8_t add_folder(meta_t *root, char *path, meta_t **return_meta)
 {
   char *lower_path, **path_parts;
   meta_t *current_folder = root, *subfolder;
   uint64_t i = 0;
+  uint8_t err_code;
 
   /* Make sure path starts with a '/' */
-  if(strncmp(path, "/", 1) != 0) 
-    die_with_error("add_folder - invalid path specified");
+  if(strncmp(path, "/", 1) != 0) return ERR_INVALID_PATH;
 
   /* If the folder already exists, we have nothing to do */
-  /* TODO: Check find_meta for error */
-  find_meta(current_folder, path, BACS_FOLDER_TYPE, &subfolder);
-  if(subfolder != NULL) return subfolder;
+  /* Check find_meta for error */
+  err_code = find_meta(current_folder, path, BACS_FOLDER_TYPE, &subfolder);
+  if(err_code != NO_ERROR) return err_code;
+  if(subfolder != NULL) {
+    *return_meta = subfolder;
+    return NO_ERROR;
+  }
 
   /* Parse full path contained in name */
   lower_path = strtolower(path);
@@ -140,13 +145,16 @@ meta_t *add_folder(meta_t *root, char *path)
 
   /* If necessary, navigate to correct folder within metadata */
   while(path_parts[i]) {
-    /* TODO: Check for error codes */
-    find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE, &subfolder);
+    /* Check for error codes */
+    err_code = find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE, 
+      &subfolder);
+    if(err_code != NO_ERROR) goto failure_exit;
 
     /* If the target folder doesn't exist, create it */
     if(subfolder == NULL) {
-      /* TODO: Check for error codes */
-      create_subfolder(current_folder, path_parts[i], &subfolder);
+      /* Check for error codes */
+      err_code = create_subfolder(current_folder, path_parts[i], &subfolder);
+      if(err_code != NO_ERROR) goto failure_exit;
     }
     
     /* Switch into target folder */
@@ -157,7 +165,17 @@ meta_t *add_folder(meta_t *root, char *path)
     i++;
   }
 
-  return subfolder;
+  *return_meta = subfolder;
+  return NO_ERROR;
+
+  /* We only get here if an error code was detected above */
+  failure_exit:
+    free(lower_path);
+    while(path_parts[i]) {
+      free(path_parts[i]);
+      i++;
+    }
+    return err_code;
 }
 
 
@@ -271,7 +289,6 @@ uint8_t create_file(meta_t *parent, const char *name, uint64_t size,
   }
 
   /* Add file to parent's file list */
-  /* TODO: Check for error codes */
   add_to_meta_tree(parent, new_file);
 
   *return_meta = new_file;
@@ -428,6 +445,7 @@ uint8_t find_child_meta(meta_t *folder, const char *target, uint8_t target_type,
 uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type, 
                   meta_t **return_meta)
 {
+  uint8_t err_code;
   int i = 0;
   meta_t *current_meta = folder;
   char *lower_path, **path_parts;
@@ -442,8 +460,9 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
   while(path_parts[i+1]) {
     if(current_meta != NULL) {
       /* TODO: Check find_child_meta for error codes */
-      find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE, 
+      err_code = find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE, 
         &current_meta);
+      if(err_code != NO_ERROR) goto failure_exit;
     }
 
     /* Clean up after str_split */
@@ -456,14 +475,24 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
 
   /* Check for the last token based on the target type */
   if(current_meta != NULL) {
-    /* TODO: Check find_child_meta for error codes */
-    find_child_meta(current_meta, path_parts[i], target_type, &current_meta);
+    /* Check find_child_meta for error codes */
+    err_code = find_child_meta(current_meta, path_parts[i], target_type, 
+      &current_meta);
+    if(err_code != NO_ERROR) goto failure_exit;
   }
 
   free(path_parts[i]);
   *return_meta = current_meta;
-
   return NO_ERROR;
+
+  /* We only get here if an error code was detected above */
+  failure_exit:
+    free(lower_path);
+    while(path_parts[i]) {
+      free(path_parts[i]);
+      i++;
+    }
+    return err_code;
 }
 
 

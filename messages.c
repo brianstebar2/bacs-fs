@@ -527,7 +527,7 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  * create_msg_post_folder_response
  *
  * Generates a message response string signifying that a folder was successfully 
- * created
+ * created; Returns NO_ERROR or an error code
  *
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
@@ -535,10 +535,10 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_folder_response(char **msg, uint64_t *msg_len)
+uint8_t create_msg_post_folder_response(char **msg, uint64_t *msg_len)
 {
-  msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
-                          NULL, 0, msg, msg_len);
+  return msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
+                                 NULL, 0, msg, msg_len);
 }
 
 

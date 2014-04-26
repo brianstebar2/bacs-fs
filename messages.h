@@ -91,7 +91,7 @@ uint8_t create_msg_post_block_response(uuid_t uuid, char **msg,
                                        uint64_t *msg_len);
 uint8_t create_msg_post_file_response(meta_t *file, char **msg, 
                                       uint64_t *msg_len);
-void create_msg_post_folder_response(char **msg, uint64_t *msg_len);
+uint8_t create_msg_post_folder_response(char **msg, uint64_t *msg_len);
 void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size, 
                                   char **content);
 void parse_msg_get_file_response(char *msg, basic_block_t **blocks, 

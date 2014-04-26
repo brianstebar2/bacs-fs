@@ -33,7 +33,7 @@ void destroy_meta_t(meta_t *target);
  * PRIVATE METHOD PROTOTYPES *
  * ========================= */ 
 void add_to_meta_tree(meta_t *parent, meta_t *child);
-meta_t *add_folder(meta_t *root, char *path);
+uint8_t add_folder(meta_t *root, char *path, meta_t **return_meta);
 uint8_t create_file(meta_t *parent, const char *name, uint64_t size, 
                     uint8_t replicas, meta_t **return_meta);
 uint8_t create_meta_t(meta_t **return_meta);

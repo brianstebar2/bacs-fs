@@ -236,7 +236,6 @@ void handle_post_block(char *msg, char **response, uint64_t *response_len)
     goto cleanup;
   }
 
-
   /* Clean up local data */
   cleanup:
     free(block_content);
@@ -301,23 +300,35 @@ void handle_post_file(char *msg, char **response, uint64_t *response_len)
  */
 void handle_post_folder(char *msg, char **response, uint64_t *response_len)
 {
+  uint8_t err_code;
   char *dirname;
   meta_t *file_meta;
 
-  /* TODO: Check message parse for errors */
-  parse_msg_post_folder_request(msg, &dirname);
+  /* Check message parse for errors */
+  err_code = parse_msg_post_folder_request(msg, &dirname);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_FOLDER, err_code, response, response_len);
+    goto finish;
+  }
 
-  /* Create the new folder */
-  /* TODO: Check file_meta for error return code */
+  /* Create the new folder; check for error code */
   printf("Creating folder '%s'\n", dirname);
-  file_meta = add_folder(fs_metadata, dirname);
+  err_code = add_folder(fs_metadata, dirname, &file_meta);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_FOLDER, err_code, response, response_len);
+    goto cleanup;
+  }
 
-  /* Create response indicicating success */
-  /* TODO: Check message creation for errors */
-  create_msg_post_folder_response(response, response_len);
+  /* Create response indicicating success; check message creation for errors */
+  err_code = create_msg_post_folder_response(response, response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_FOLDER, err_code, response, response_len);
+    goto cleanup;
+  }
 
   /* Clean up local data */
-  free(dirname);
+  cleanup: free(dirname);
+  finish: /*do nothing*/;
 }
 
 
@@ -342,185 +353,192 @@ void start_listening()
   basic_block_t *basic_blocks;
   uuid_t bogus_uuid;
 
-  // /* Client: Send a request to upload a new file */
-  // create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
-  // print_msg(msg);
-  // handle_post_file(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
+  /* Client: Send a request to upload a new file */
+  create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
+  print_msg(msg);
+  handle_post_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
 
-  // printf("SERVER META TREE\n");
-  // print_meta_tree(fs_metadata, "");
-  // printf("\n");
+  printf("SERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
   
-  // /* Client: Take list of UUIDs and send each block */
-  // parse_msg_post_file_response(resp, &uuids, &num_uuids);
-  // free(resp);
-  // for(i=0; i < num_uuids; i++) {
-  //   block_t *block_ptr = find_block(uuids[i]);
-  //   char block[DEFAULT_BLOCK_SIZE] = {0};
-  //   sprintf(block, "Block #%" PRIu64 " content", i);
+  /* Client: Take list of UUIDs and send each block */
+  parse_msg_post_file_response(resp, &uuids, &num_uuids);
+  free(resp);
+  for(i=0; i < num_uuids; i++) {
+    block_t *block_ptr = find_block(uuids[i]);
+    char block[DEFAULT_BLOCK_SIZE] = {0};
+    sprintf(block, "Block #%" PRIu64 " content", i);
     
-  //   /* Client: send a block */
-  //   /* TODO: Add checksum to post block request message */
-  //   create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  //   print_msg(msg);
-  //   handle_post_block(msg, &resp, &resp_len);
-  //   print_msg(resp);
-  //   free(msg);
-  //   free(resp);
+    /* Client: send a block */
+    /* TODO: Add checksum to post block request message */
+    create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &len);
+    print_msg(msg);
+    handle_post_block(msg, &resp, &resp_len);
+    print_msg(resp);
+    free(msg);
+    free(resp);
 
-  //   printf("SERVER FILE META\n");
-  //   print_file_meta(block_ptr->parent);
-  // }
+    printf("SERVER FILE META\n");
+    print_file_meta(block_ptr->parent);
+  }
 
-  // /* Client: create a new folder */
-  // create_msg_post_folder_request("/awesome/cool", &msg, &len);
-  // print_msg(msg);
-  // handle_post_folder(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Client: create a new folder */
+  create_msg_post_folder_request("/awesome/cool", &msg, &len);
+  print_msg(msg);
+  handle_post_folder(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // printf("\nSERVER META TREE\n");
-  // print_meta_tree(fs_metadata, "");
-  // printf("\n");
+  printf("\nSERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
 
-  // /* Add another file to the file system */
-  // file_meta = add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0);
-  // printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+  /* Add another file to the file system */
+  add_file_meta(fs_metadata, "/awesome/d.txt", 8000, 0, &file_meta);
+  printf("Added /awesome/d.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
 
-  // printf("\nSERVER META TREE\n");
-  // print_meta_tree(fs_metadata, "");
-  // printf("\n");
+  printf("\nSERVER META TREE\n");
+  print_meta_tree(fs_metadata, "");
+  printf("\n");
 
-  // /* Have a look at the directory /awesome contents */
-  // /* Client: Send a request to the server for folder metadata */
-  // create_msg_get_folder_meta_request("/awesome", &msg, &len);
-  // print_msg(msg);
-  // handle_get_folder_meta(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Have a look at the directory /awesome contents */
+  /* Client: Send a request to the server for folder metadata */
+  create_msg_get_folder_meta_request("/awesome", &msg, &len);
+  print_msg(msg);
+  handle_get_folder_meta(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Have a look at the directory /awesome/bad contents */
-  // /* Client: Send a request to the server for folder metadata */
-  // create_msg_get_folder_meta_request("/awesome/bad", &msg, &len);
-  // print_msg(msg);
-  // handle_get_folder_meta(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Have a look at the directory /awesome/bad contents */
+  /* Client: Send a request to the server for folder metadata */
+  create_msg_get_folder_meta_request("/awesome/bad", &msg, &len);
+  print_msg(msg);
+  handle_get_folder_meta(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Client: Send a message requesting to download a file */
-  // create_msg_get_file_request("/awesome/bad/c.txt", &msg, &len);
-  // print_msg(msg);
-  // handle_get_file(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
+  /* Client: Send a message requesting to download a file */
+  create_msg_get_file_request("/awesome/bad/c.txt", &msg, &len);
+  print_msg(msg);
+  handle_get_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
 
-  // /* Client: Take list of UUIDs and request each block */
-  // parse_msg_get_file_response(resp, &basic_blocks, &num_blocks);
-  // free(resp);
-  // for(i=0; i < num_blocks; i++) {
-  //   create_msg_get_block_request(basic_blocks[i].uuid, &msg, &len);
-  //   print_msg(msg);
-  //   handle_get_block(msg, &resp, &resp_len);
-  //   print_msg(resp);
-  //   free(msg);
-  //   free(resp);
-  // }
+  /* Client: Take list of UUIDs and request each block */
+  parse_msg_get_file_response(resp, &basic_blocks, &num_blocks);
+  free(resp);
+  for(i=0; i < num_blocks; i++) {
+    create_msg_get_block_request(basic_blocks[i].uuid, &msg, &len);
+    print_msg(msg);
+    handle_get_block(msg, &resp, &resp_len);
+    print_msg(resp);
+    free(msg);
+    free(resp);
+  }
 
-  // /* Now let's test some error messages */
-  // /* Try requesting a bogus block */
-  // uuid_generate(bogus_uuid);
-  // create_msg_get_block_request(bogus_uuid, &msg, &len);
-  // print_msg(msg);
-  // handle_get_block(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Now let's test some error messages */
+  /* Try requesting a bogus block */
+  uuid_generate(bogus_uuid);
+  create_msg_get_block_request(bogus_uuid, &msg, &len);
+  print_msg(msg);
+  handle_get_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Request a bogus file */
-  // create_msg_get_file_request("/nonexistent.mp4", &msg, &len);
-  // print_msg(msg);
-  // handle_get_file(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(resp);
-  // free(msg);
+  /* Request a bogus file */
+  create_msg_get_file_request("/nonexistent.mp4", &msg, &len);
+  print_msg(msg);
+  handle_get_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(resp);
+  free(msg);
 
-  // /* Lookup a bogus directory */
-  // create_msg_get_folder_meta_request("/ghost_folder", &msg, &len);
-  // print_msg(msg);
-  // handle_get_folder_meta(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Lookup a bogus directory */
+  create_msg_get_folder_meta_request("/ghost_folder", &msg, &len);
+  print_msg(msg);
+  handle_get_folder_meta(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Test POST BLOCK errors */
-  // add_file_meta(fs_metadata, "/test.txt", 2000, 0, &file_meta);
-  // printf("Added /test.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+  /* Test POST BLOCK errors */
+  add_file_meta(fs_metadata, "/test.txt", 2000, 0, &file_meta);
+  printf("Added /test.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
 
-  // /* Try posting a bogus block */
-  // char block[DEFAULT_BLOCK_SIZE] = {0};
-  // sprintf(block, "Bogus content");
-  // uuid_generate(bogus_uuid);
-  // create_msg_post_block_request(bogus_uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  // print_msg(msg);
-  // handle_post_block(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Try posting a bogus block */
+  char block[DEFAULT_BLOCK_SIZE] = {0};
+  sprintf(block, "Bogus content");
+  uuid_generate(bogus_uuid);
+  create_msg_post_block_request(bogus_uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Try sending content that's the wrong size */
-  // sprintf(block, "Block #0 content");
-  // create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE/2, block, &msg, &len);
-  // print_msg(msg);
-  // handle_post_block(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Try sending content that's the wrong size */
+  sprintf(block, "Block #0 content");
+  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE/2, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Try populating a block twice */
-  // create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  // print_msg(msg);
-  // handle_post_block(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  /* Try populating a block twice */
+  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  // print_msg(msg);
-  // handle_post_block(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(msg);
-  // free(resp);
+  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
 
-  // /* Test POST FILE errors */
-  // /* Try sending a relative path */
-  // create_msg_post_file_request("file.dat", 4096, &msg, &len);  
-  // print_msg(msg);
-  // handle_post_file(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(resp);
-  // free(msg);
+  /* Test POST FILE errors */
+  /* Try sending a relative path */
+  create_msg_post_file_request("file.dat", 4096, &msg, &len);  
+  print_msg(msg);
+  handle_post_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(resp);
+  free(msg);
 
-  // /* Try submitting a file twice */
-  // create_msg_post_file_request("/file.dat", 4096, &msg, &len);  
-  // print_msg(msg);
-  // handle_post_file(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(resp);
-  // free(msg);
+  /* Try submitting a file twice */
+  create_msg_post_file_request("/file.dat", 4096, &msg, &len);  
+  print_msg(msg);
+  handle_post_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(resp);
+  free(msg);
 
-  // create_msg_post_file_request("/file.dat", 4096, &msg, &len);  
-  // print_msg(msg);
-  // handle_post_file(msg, &resp, &resp_len);
-  // print_msg(resp);
-  // free(resp);
-  // free(msg);
+  create_msg_post_file_request("/file.dat", 4096, &msg, &len);  
+  print_msg(msg);
+  handle_post_file(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(resp);
+  free(msg);
 
-
+  /* Test POST FOLDER errors */
+  /* Try sending a relative path */
+  create_msg_post_folder_request("folder", &msg, &len);  
+  print_msg(msg);
+  handle_post_folder(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(resp);
+  free(msg);
 
 
 
