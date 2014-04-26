@@ -158,7 +158,6 @@ void get_string(char *string, char *input, int index)
 {
   int i=0;
   int len = strlen(input);
-  int k, name_index=0;
   while(index<len)
   {
     string[i++]=input[index++];
@@ -166,7 +165,7 @@ void get_string(char *string, char *input, int index)
   /* printf("%s",string); */
 }
 
-void upload(char* file_name, bool f, char* local_path, char* remote_path, char* IPaddr)
+void upload(char* file_name, bool f, char* local_path, char* remote_path, char* IPaddr, int PN)
 {
   if(f==0)
   {
@@ -177,6 +176,8 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
 	uint64_t msg_len;
 	uuid_t *uuids = 0;
 	uint64_t num_uuids;
+	ErrorCode error;
+	struct Node* resp;
     printf("...Uploading file '%s'...\n", file_name);
     strcpy(filepath,local_path);
     strcat(filepath,"/");
@@ -184,12 +185,11 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
 	stat(filepath, &st);
     	create_msg_post_file_request(file_name, size, &msg, &msg_len);
 	/*mysend(msg, ...) */
-	ErrorCode error = mysend(msg, IPaddr, 9930, msg_len);
+	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send");
-	struct Receive_message resp;
 	resp = myrecv();
-	resp_msg = resp.msg;
+	resp_msg = resp->message;
   /* Wait for response */
   /* myrecv(blah blah blah, resp_msg) */
   parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
@@ -202,7 +202,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, char* 
      	   get_header_type(msg) != BACS_RESPONSE)
     		die_with_error("upload_file - invalid message header");
 
-	  send_file(filepath, IPaddr, &uuids, num_uuids);
+	  send_file(filepath, IPaddr, uuids, num_uuids);
 	  free(uuids);
 
     printf("\n...File uploaded to path: %s\n",remote_path);
@@ -400,6 +400,7 @@ int main(int argc, char *argv[])
   int MAX_LENGTH, i, index, j;
   char IPaddr[1024];
   char *command, *input, *local_path, *remote_path;
+	int PN = 9930;
 
   MAX_LENGTH=20;
   strcpy(IPaddr, argv[1]);
@@ -462,7 +463,7 @@ printf("\nlocal_path: %s\n", local_path);
 	  char *string = (char*)malloc(sizeof(char)*20);
 	  memset(string,0,20);
           get_string(string, input, j+3);
-          upload(string, 0, local_path, remote_path, IPaddr);
+          upload(string, 0, local_path, remote_path, IPaddr, PN);
 	  free(string);
         }
         else if(input[j+1]=='d')
@@ -470,7 +471,7 @@ printf("\nlocal_path: %s\n", local_path);
           char *string = (char*)malloc(sizeof(char)*20);
 	  memset(string,0,20);
           get_string(string, input, j+3);
-          upload(string, 1, local_path, remote_path, IPaddr); 
+          upload(string, 1, local_path, remote_path, IPaddr, PN); 
 	  free(string);
         }
         else
