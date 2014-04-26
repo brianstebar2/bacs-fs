@@ -352,6 +352,7 @@ void start_listening()
   meta_t *file_meta;
   basic_block_t *basic_blocks;
   uuid_t bogus_uuid;
+  char block[DEFAULT_BLOCK_SIZE] = {0};
 
   /* Client: Send a request to upload a new file */
   create_msg_post_file_request("/awesome/bad/c.txt", 4096, &msg, &len);  
@@ -369,7 +370,6 @@ void start_listening()
   free(resp);
   for(i=0; i < num_uuids; i++) {
     block_t *block_ptr = find_block(uuids[i]);
-    char block[DEFAULT_BLOCK_SIZE] = {0};
     sprintf(block, "Block #%" PRIu64 " content", i);
     
     /* Client: send a block */
@@ -473,7 +473,6 @@ void start_listening()
   printf("Added /test.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
 
   /* Try posting a bogus block */
-  char block[DEFAULT_BLOCK_SIZE] = {0};
   sprintf(block, "Bogus content");
   uuid_generate(bogus_uuid);
   create_msg_post_block_request(bogus_uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
@@ -556,9 +555,9 @@ void start_listening()
   //           switch(get_header_action(msg)) {
   //             case GET:   handle_get_block(msg, &resp, &resp_len); break;
   //             case POST:  handle_post_block(msg, &resp, &resp_len); break;
-  //             default:    printf("Invalid message action; send error message.\n");
+  //             default:    create_msg_error(0, get_header_resource(msg),
+  //                           ERR_MSG_ACTION, &resp, &resp_len);
   //           }
-
   //           break;
 
   //         /* FILE requests */
@@ -566,7 +565,8 @@ void start_listening()
   //           switch(get_header_action(msg)) {
   //             case GET:   handle_get_file(msg, &resp, &resp_len); break;
   //             case POST:  handle_post_file(msg, &resp, &resp_len); break;
-  //             default:    printf("Invalid message action; send error message.\n");
+  //             default:    create_msg_error(0, get_header_resource(msg),
+  //                           ERR_MSG_ACTION, &resp, &resp_len);
   //           }
   //           break;
 
@@ -575,15 +575,18 @@ void start_listening()
   //           switch(get_header_action(msg)) {
   //             case GET:   handle_get_folder_meta(msg, &resp, &resp_len); break;
   //             case POST:  handle_post_folder(msg, &resp, &resp_len); break;
-  //             default:    printf("Invalid message action; send error message.\n");
+  //             default:    create_msg_error(0, get_header_resource(msg),
+  //                           ERR_MSG_ACTION, &resp, &resp_len);
   //           }
   //           break;
 
-  //         default: printf("Unknown message resource; send error message.\n");
+  //         default: create_msg_error(get_header_action(msg), 0, ERR_MSG_RESOURCE, 
+  //                    &resp, &resp_len);
   //       }
   //       break;
 
-  //     default: printf("Unknown message type; send error message.\n");
+  //     default: create_msg_error(get_header_action(msg), get_header_resource(msg), 
+  //                ERR_MSG_TYPE, &resp, &resp_len);
   //   }
 
 

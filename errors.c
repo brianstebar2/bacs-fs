@@ -38,6 +38,9 @@ const char *error_message(uint8_t err_code)
       msg = "Provided path is not a valid absolute path."; break;
     case ERR_MEM_ALLOC: 
       msg = "Server experienced a memory allocation error."; break;
+    case ERR_MSG_ACTION: msg = "Unrecognized action requested."; break;
+    case ERR_MSG_RESOURCE: msg = "Unrecognized resource requested."; break;
+    case ERR_MSG_TYPE: msg = "Unrecognized message type requested."; break;
 
     default: msg = "";
   }

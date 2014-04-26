@@ -29,6 +29,9 @@
 #define ERR_HEADER_MISMATCH 5
 #define ERR_INVALID_PATH 8
 #define ERR_MEM_ALLOC 1
+#define ERR_MSG_ACTION 11
+#define ERR_MSG_RESOURCE 12
+#define ERR_MSG_TYPE 13
 
 
 /* ========================== *
