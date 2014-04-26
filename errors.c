@@ -23,9 +23,14 @@ const char *error_message(uint8_t err_code)
   const char *msg;
 
   switch(err_code) {
-    case ERR_BLOCK_NOT_FOUND:   msg = "Block not found."; break;
-    case ERR_FILE_NOT_FOUND:    msg = "File not found."; break;
-    case ERR_FOLDER_NOT_FOUND:  msg = "Folder not found."; break;
+    case ERR_BLOCK_NOT_FOUND: msg = "Block not found."; break;
+    case ERR_BLOCK_NOT_NEW: msg = "Block has already been populated."; break;
+    case ERR_BLOCK_SIZE_MISMATCH:
+      msg = "Content size didn't match the block's size."; break;
+    case ERR_FILE_NOT_FOUND: msg = "File not found."; break;
+    case ERR_FOLDER_NOT_FOUND: msg = "Folder not found."; break;
+    case ERR_HEADER_MISMATCH:
+      msg = "A parser received a message with unexpected headers."; break;
     case ERR_MEM_ALLOC: 
       msg = "Server experienced a memory allocation error."; break;
 

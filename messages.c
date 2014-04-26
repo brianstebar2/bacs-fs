@@ -384,7 +384,7 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
  * create_msg_post_block_response
  *
  * Generates a message response string signifying that a block was successfully 
- * uploaded
+ * uploaded; Returns NO_ERROR or an error code
  *
  * uuid     - UUID of the block that was successfully uploaded
  * msg      - (return val) pointer where the message string will be stored
@@ -393,10 +393,11 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_block_response(uuid_t uuid, char **msg, uint64_t *msg_len)
+uint8_t create_msg_post_block_response(uuid_t uuid, char **msg, 
+                                       uint64_t *msg_len)
 {
-  msg_with_single_element(POST, BACS_BLOCK, BACS_RESPONSE, 
-                          uuid, sizeof(uuid_t), msg, msg_len);
+  return msg_with_single_element(POST, BACS_BLOCK, BACS_RESPONSE, 
+                                 uuid, sizeof(uuid_t), msg, msg_len);
 }
 
 
@@ -767,7 +768,8 @@ uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
 /**
  * parse_msg_block
  *
- * Extracts the UUID, content size, and content of the block from the request
+ * Extracts the UUID, content size, and content of the block from the request;
+ * Returns NO_ERROR or an error code
  *
  * action   - message action identifier
  * resource - target resource for this message
@@ -780,8 +782,9 @@ uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
  * NOTE: this method allocates memory for 'content'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type, 
-                     uuid_t *uuid, uint32_t *size, char **content)
+uint8_t parse_msg_block(char *msg, uint8_t action, uint8_t resource, 
+                        uint8_t type, uuid_t *uuid, uint32_t *size, 
+                        char **content)
 {
   uint32_t index;
   uuid_t *msg_uuid;
@@ -791,7 +794,7 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
   if(get_header_resource(msg) != resource || 
      get_header_action(msg) != action ||
      get_header_type(msg) != type)
-    die_with_error("parse_msg_block - invalid message header");
+    return ERR_HEADER_MISMATCH;
 
   /* Extract the block's UUID */
   index = BACS_HEADER_SIZE;
@@ -804,8 +807,7 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
 
   /* Allocate memory for the block content */
   string = calloc(*size, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_block - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, *size * sizeof(char));
 
   /* Extract content from message */
@@ -814,6 +816,8 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
   *content = string;
 
   /* TODO: Extract checksum from message */
+
+  return NO_ERROR;
 }
 
 
@@ -1049,7 +1053,8 @@ void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas,
 /**
  * parse_msg_post_block_request
  *
- * Extracts the UUID, content size, and content of the block from the request
+ * Extracts the UUID, content size, and content of the block from the request;
+ * Returns NO_ERROR or an error code
  *
  * msg     - the message to parse
  * uuid    - (return val) pointer to uuid_t where UUID should be written
@@ -1059,10 +1064,11 @@ void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas,
  * NOTE: this method allocates memory for 'content'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
-                                  char **content)
+uint8_t parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
+                                     char **content)
 {
-  parse_msg_block(msg, POST, BACS_BLOCK, BACS_REQUEST, uuid, size, content);
+  return parse_msg_block(msg, POST, BACS_BLOCK, BACS_REQUEST, uuid, size, 
+    content);
 }
 
 

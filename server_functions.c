@@ -145,8 +145,7 @@ void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len)
     goto finish;
   }
 
-  /* Lookup target folder */
-  /* Check file_meta for error return code */
+  /* Lookup target folder and check file_meta for error return code */
   printf("Retrieving metadata for folder '%s'\n", dirname);
   err_code = find_meta(fs_metadata, dirname, BACS_FOLDER, &folder_meta);
   if(err_code != NO_ERROR) {
@@ -185,6 +184,7 @@ void handle_get_folder_meta(char *msg, char **response, uint64_t *response_len)
  */
 void handle_post_block(char *msg, char **response, uint64_t *response_len)
 {
+  uint8_t err_code;
   uint32_t block_size;
   uint64_t i;
   char *block_content, *uuid_string;
@@ -192,19 +192,33 @@ void handle_post_block(char *msg, char **response, uint64_t *response_len)
   block_t *block_ptr;
   meta_t *file_meta;
 
-  /* TODO: Check message parse for errors */
-  parse_msg_post_block_request(msg, &block_uuid, &block_size, &block_content);
+  /* Check message parse for errors */
+  err_code = parse_msg_post_block_request(msg, &block_uuid, &block_size, 
+    &block_content);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_BLOCK, err_code, response, response_len);
+    goto finish;
+  }
 
-  /* Lookup block to populate */
-  /* TODO: Check lookup for errors */
+  /* Lookup block to populate and check lookup for errors */
   uuid_string = uuid_str(block_uuid);
   block_ptr = find_block(block_uuid);
-  printf("Populating block %s in file '%s'\n", 
-    uuid_string, block_ptr->parent->name);
+  if(block_ptr == NULL) {
+    create_msg_error(POST, BACS_BLOCK, ERR_BLOCK_NOT_FOUND, 
+      response, response_len);
+    goto cleanup;
+  }
 
   /* Populate block content */
-  /* TODO: Check populate for errors */
-  populate_block(block_ptr, block_content, block_size);
+  printf("Populating block %s in file '%s'\n", 
+    uuid_string, block_ptr->parent->name);
+  err_code = populate_block(block_ptr, block_content, block_size);
+
+  /* Check populate for errors */
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_BLOCK, err_code, response, response_len);
+    goto cleanup;
+  }
   
   /* Scan through the blocks and see if they're all ready now */
   file_meta = block_ptr->parent;
@@ -215,12 +229,19 @@ void handle_post_block(char *msg, char **response, uint64_t *response_len)
   if(i == file_meta->num_blocks) file_meta->status = READY;
 
   /* Create response indicating success */
-  /* TODO: Check message creation for errors */
-  create_msg_post_block_response(block_uuid, response, response_len);
+  /* Check message creation for errors */
+  err_code = create_msg_post_block_response(block_uuid, response, response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_BLOCK, err_code, response, response_len);
+    goto cleanup;
+  }
+
 
   /* Clean up local data */
-  free(uuid_string);
-  free(block_content);
+  cleanup:
+    free(block_content);
+    free(uuid_string);
+  finish: /*do nothing*/;
 }
 
 
@@ -415,13 +436,55 @@ void start_listening()
   // free(resp);
   // free(msg);
 
-  /* Lookup a bogus directory */
-  create_msg_get_folder_meta_request("/ghost_folder", &msg, &len);
+  // /* Lookup a bogus directory */
+  // create_msg_get_folder_meta_request("/ghost_folder", &msg, &len);
+  // print_msg(msg);
+  // handle_get_folder_meta(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
+
+  /* Test POST BLOCK errors */
+  file_meta = add_file_meta(fs_metadata, "/test.txt", 2000, 0);
+  printf("Added /test.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+
+  /* Try posting a bogus block */
+  char block[DEFAULT_BLOCK_SIZE] = {0};
+  sprintf(block, "Bogus content");
+  uuid_generate(bogus_uuid);
+  create_msg_post_block_request(bogus_uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
   print_msg(msg);
-  handle_get_folder_meta(msg, &resp, &resp_len);
+  handle_post_block(msg, &resp, &resp_len);
   print_msg(resp);
   free(msg);
   free(resp);
+
+  /* Try sending content that's the wrong size */
+  sprintf(block, "Block #0 content");
+  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE/2, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  /* Try populating a block twice */
+  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  print_msg(msg);
+  handle_post_block(msg, &resp, &resp_len);
+  print_msg(resp);
+  free(msg);
+  free(resp);
+
+
+
 
 
 

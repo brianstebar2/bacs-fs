@@ -15,6 +15,7 @@
 #include "blocks.h"
 #include "common.h"
 #include "die_with_error.h"
+#include "errors.h"
 
 /**
  * create_block_t()
@@ -167,20 +168,19 @@ char *get_block_content(block_t *target)
 /**
  * populate_block
  *
- * Writes the content to a block and marks it as ready
+ * Writes the content to a block and marks it as ready; Returns NO_ERROR or an
+ * error code
  */
-void populate_block(block_t *target, char *content, int32_t content_size)
+uint8_t populate_block(block_t *target, char *content, int32_t content_size)
 {
   char *filename;
   FILE *block_file;
 
   /* Check if the target block has already been populated or deleted */
-  if(target->status != NEW) 
-    die_with_error("populate_block - target not a new block\n");
+  if(target->status != NEW) return ERR_BLOCK_NOT_NEW;
 
   /* Check that the provided content size matches the block metadata */
-  if(target->size != content_size)
-    die_with_error("populate_block - content size different than expected\n");
+  if(target->size != content_size) return ERR_BLOCK_SIZE_MISMATCH;
 
   /* TODO: Check that the content checksum computes properly */
 
@@ -194,4 +194,6 @@ void populate_block(block_t *target, char *content, int32_t content_size)
 
   /* Update status */
   target->status = READY;
+
+  return NO_ERROR;
 }
