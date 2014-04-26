@@ -24,7 +24,7 @@ const char *block_data_path;
 
 
 
-block_t *create_block_t();
+uint8_t create_block_t(block_t **return_block);
 void destroy_block_t(block_t *target);
 block_t *find_block(uuid_t uuid);
 char *generate_block_filename(block_t *target);

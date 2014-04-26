@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   printf("BACS - Starting file server...\n");
 
   /* Initialize the file metadata tree */
-  fs_metadata = create_meta_t();
+  create_meta_t(&fs_metadata);
   fs_metadata->status = READY;
 
   /* Initialize server block storage */

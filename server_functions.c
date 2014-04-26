@@ -256,24 +256,37 @@ void handle_post_block(char *msg, char **response, uint64_t *response_len)
  */
 void handle_post_file(char *msg, char **response, uint64_t *response_len)
 {
+  uint8_t err_code;
   uint64_t file_size;
   char *filename;
   meta_t *file_meta;
 
-  /* TODO: Check message parse for errors */
-  parse_msg_post_file_request(msg, &filename, &file_size);
-  
-  /* Add metadata for new file */
-  /* TODO: Check file_meta for error return code */
+  /* Check message parse for errors */
+  err_code = parse_msg_post_file_request(msg, &filename, &file_size);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_FILE, err_code, response, response_len);
+    goto finish;
+  }
+
+  /* Add metadata for new file and check for error return code */
   printf("Creating metadata for file '%s'\n", filename);
-  file_meta = add_file_meta(fs_metadata, filename, file_size, 0);
+  err_code = add_file_meta(fs_metadata, filename, file_size, 0, &file_meta);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
 
   /* Create response containing list of UUIDs for new file's blocks */
-  /* TODO: Check message creation for errors */
-  create_msg_post_file_response(file_meta, response, response_len);
+  /* Check message creation for errors */
+  err_code = create_msg_post_file_response(file_meta, response, response_len);
+  if(err_code != NO_ERROR) {
+    create_msg_error(POST, BACS_FILE, err_code, response, response_len);
+    goto cleanup;
+  }
 
   /* Clean up local data */
-  free(filename);
+  cleanup: free(filename);
+  finish: /*do nothing*/;
 }
 
 
@@ -444,44 +457,68 @@ void start_listening()
   // free(msg);
   // free(resp);
 
-  /* Test POST BLOCK errors */
-  file_meta = add_file_meta(fs_metadata, "/test.txt", 2000, 0);
-  printf("Added /test.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
+  // /* Test POST BLOCK errors */
+  // add_file_meta(fs_metadata, "/test.txt", 2000, 0, &file_meta);
+  // printf("Added /test.txt; UUIDs returned: %" PRIu64 "\n", file_meta->num_blocks);
 
-  /* Try posting a bogus block */
-  char block[DEFAULT_BLOCK_SIZE] = {0};
-  sprintf(block, "Bogus content");
-  uuid_generate(bogus_uuid);
-  create_msg_post_block_request(bogus_uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  print_msg(msg);
-  handle_post_block(msg, &resp, &resp_len);
-  print_msg(resp);
-  free(msg);
-  free(resp);
+  // /* Try posting a bogus block */
+  // char block[DEFAULT_BLOCK_SIZE] = {0};
+  // sprintf(block, "Bogus content");
+  // uuid_generate(bogus_uuid);
+  // create_msg_post_block_request(bogus_uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  // print_msg(msg);
+  // handle_post_block(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
 
-  /* Try sending content that's the wrong size */
-  sprintf(block, "Block #0 content");
-  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE/2, block, &msg, &len);
-  print_msg(msg);
-  handle_post_block(msg, &resp, &resp_len);
-  print_msg(resp);
-  free(msg);
-  free(resp);
+  // /* Try sending content that's the wrong size */
+  // sprintf(block, "Block #0 content");
+  // create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE/2, block, &msg, &len);
+  // print_msg(msg);
+  // handle_post_block(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
 
-  /* Try populating a block twice */
-  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  print_msg(msg);
-  handle_post_block(msg, &resp, &resp_len);
-  print_msg(resp);
-  free(msg);
-  free(resp);
+  // /* Try populating a block twice */
+  // create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  // print_msg(msg);
+  // handle_post_block(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
 
-  create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
-  print_msg(msg);
-  handle_post_block(msg, &resp, &resp_len);
-  print_msg(resp);
-  free(msg);
-  free(resp);
+  // create_msg_post_block_request(file_meta->blocks[0]->uuid, DEFAULT_BLOCK_SIZE, block, &msg, &len);
+  // print_msg(msg);
+  // handle_post_block(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(msg);
+  // free(resp);
+
+  // /* Test POST FILE errors */
+  // /* Try sending a relative path */
+  // create_msg_post_file_request("file.dat", 4096, &msg, &len);  
+  // print_msg(msg);
+  // handle_post_file(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(resp);
+  // free(msg);
+
+  // /* Try submitting a file twice */
+  // create_msg_post_file_request("/file.dat", 4096, &msg, &len);  
+  // print_msg(msg);
+  // handle_post_file(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(resp);
+  // free(msg);
+
+  // create_msg_post_file_request("/file.dat", 4096, &msg, &len);  
+  // print_msg(msg);
+  // handle_post_file(msg, &resp, &resp_len);
+  // print_msg(resp);
+  // free(resp);
+  // free(msg);
 
 
 

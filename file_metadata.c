@@ -28,7 +28,8 @@
  *
  * Adds the specified file to the specified file metadata tree; creates the
  * folders in the file's path if nessary; creates empty blocks for the new file;
- * returns a pointer to the new file's meta_t structure
+ * returns a pointer to the new file's meta_t structure; returns NO_ERROR or an
+ * error code
  *
  * root      - the root of the metadata tree that will contain the new metadata
  * path      - the target fully-qualified path (including the file's name)
@@ -38,21 +39,21 @@
  * 
  * NOTE: If the file in 'path' already exists, an exception is thrown
  */
-meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
+uint8_t add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas, 
+                      meta_t **return_meta)
 {
   char *lower_path, **path_parts;
   meta_t *current_folder = root, *new_file, *old_file;
   uint64_t i = 0;
+  uint8_t err_code = NO_ERROR;
 
   /* Make sure path starts with a '/' */
-  if(strncmp(path, "/", 1) != 0) 
-    die_with_error("add_file_meta - invalid path specified");
+  if(strncmp(path, "/", 1) != 0) return ERR_INVALID_PATH;
 
-  /* Make sure we the file doesn't already exist */
-  /* TODO: Check find_meta for errors */
-  find_meta(current_folder, path, BACS_FILE_TYPE, &old_file);
-  if(old_file != NULL)
-    die_with_error("add_file_meta - file already exists");
+  /* Make sure we the file doesn't already exist (check for errors) */
+  err_code = find_meta(current_folder, path, BACS_FILE_TYPE, &old_file);
+  if(err_code != NO_ERROR) return err_code;
+  if(old_file != NULL) return ERR_FILE_EXISTS;
 
   /* Parse full path contained in name */
   lower_path = strtolower(path);
@@ -63,11 +64,17 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
      for a null terminator */
   while(path_parts[i+1]) {
     meta_t *subfolder;
-    subfolder = find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE);
+    /* Check find_child_meta for error codes */
+    err_code = find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE, 
+      &subfolder);
+    if(err_code != NO_ERROR) goto failure_exit;
 
     /* If the target folder doesn't exist, create it */
-    if(subfolder == NULL) 
-      subfolder = create_subfolder(current_folder, path_parts[i]);
+    if(subfolder == NULL) {
+      /* Check create_subfolder for error codes */
+      err_code = create_subfolder(current_folder, path_parts[i], &subfolder);
+      if(err_code != NO_ERROR) goto failure_exit;
+    }
     
     /* Switch into target folder */
     current_folder = subfolder;
@@ -80,21 +87,24 @@ meta_t *add_file_meta(meta_t *root, char *path, uint64_t size, uint8_t replicas)
        and current_folder will point to the destination folder */
   }
 
-  /* Create metadata for this file */
-  new_file = create_file(current_folder, path_parts[i], size, replicas);
-
-  /*printf("SERVER LIST OF BLOCKS FOR %s (%" PRIu64 " blocks):\n", 
-    new_file->name, new_file->num_blocks);
-  for(i = 0; i < new_file->num_blocks; i++) {
-    char *str = uuid_str(new_file->blocks[i]->uuid);
-    printf(" - %s\n", str);
-    free(str);
-  }
-  printf("\n");*/
+  /* Create metadata for this file and check for error codes */
+  err_code = create_file(current_folder, path_parts[i], size, replicas, 
+    &new_file);
+  if(err_code != NO_ERROR) goto failure_exit;
 
   /* Clean up and return */
   free(lower_path);
-  return new_file;
+  *return_meta = new_file;
+  return NO_ERROR;
+
+  /* We only get here if an error code was detected above */
+  failure_exit:
+    free(lower_path);
+    while(path_parts[i]) {
+      free(path_parts[i]);
+      i++;
+    }
+    return err_code;
 }
 
 
@@ -130,11 +140,14 @@ meta_t *add_folder(meta_t *root, char *path)
 
   /* If necessary, navigate to correct folder within metadata */
   while(path_parts[i]) {
-    subfolder = find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE);
+    /* TODO: Check for error codes */
+    find_child_meta(current_folder, path_parts[i], BACS_FOLDER_TYPE, &subfolder);
 
     /* If the target folder doesn't exist, create it */
-    if(subfolder == NULL) 
-      subfolder = create_subfolder(current_folder, path_parts[i]);
+    if(subfolder == NULL) {
+      /* TODO: Check for error codes */
+      create_subfolder(current_folder, path_parts[i], &subfolder);
+    }
     
     /* Switch into target folder */
     current_folder = subfolder;
@@ -202,23 +215,30 @@ void add_to_meta_tree(meta_t *parent, meta_t *child)
  * create_file
  *
  * Creates a new file in the 'parent' folder and generates corresponding
- * empty blocks for the file; Returns a pointer to the new file
+ * empty blocks for the file; Assigns 'return_meta' to point to the new file;
+ * Returns NO_ERROR or an error code
  *
- * root      - the root of the metadata tree that will contain the new metadata
- * path      - the target fully-qualified path (including the file's name)
- * size      - number of bytes in the new file
- * replicas  - minimum number of replicas this file should have; if 0, then
- *             the default number of replicas will be used (see definitions.h)
+ * root        - the root of metadata tree that will contain the new metadata
+ * path        - the target fully-qualified path (including the file's name)
+ * size        - number of bytes in the new file
+ * replicas    - minimum number of replicas this file should have; if 0, then
+ *               the default number of replicas will be used (see definitions.h)
+ * return_meta - (return value) pointer to the new file meta_t
  *
  * NOTE: create_file copies 'name's value into a new string, so freeing the 
  *       string that 'name' points to after creating the folder is safe.
  * NOTE: NOT THREAD SAFE
  */
-meta_t *create_file(meta_t *parent, const char *name, uint64_t size, 
-                    uint8_t replicas)
+uint8_t create_file(meta_t *parent, const char *name, uint64_t size, 
+                    uint8_t replicas, meta_t **return_meta)
 {
-  meta_t *new_file = create_meta_t();
-  uint64_t i, bytes_left;
+  meta_t *new_file;
+  uint64_t i, bytes_left, x;
+  uint8_t err_code;
+
+  /* Create new meta_t and check for error codes */
+  err_code = create_meta_t(&new_file);
+  if(err_code != NO_ERROR) return err_code;
 
   /* Populate the fields in the new file's metadata */
   new_file->type = BACS_FILE_TYPE;
@@ -232,13 +252,17 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
   new_file->num_blocks = 
     (size / DEFAULT_BLOCK_SIZE) + ((size % DEFAULT_BLOCK_SIZE) > 0);
   new_file->blocks = malloc(sizeof(block_t *) * new_file->num_blocks);
-  if(new_file->blocks == NULL) die_with_error("create_file - malloc failed");
+  if(new_file->blocks == NULL) {
+    err_code = ERR_MEM_ALLOC;
+    goto failure_cleanup1;
+  }
 
   /* Generate blocks for this file */
   bytes_left = size;
   for(i = 0; i < new_file->num_blocks; i++) {
-    new_file->blocks[i] = create_block_t();
-    
+    err_code = create_block_t(&new_file->blocks[i]);
+    if(err_code != NO_ERROR) goto failure_cleanup2;
+
     /* Populate block fields */
     new_file->blocks[i]->parent = new_file;
     new_file->blocks[i]->size = 
@@ -247,9 +271,20 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
   }
 
   /* Add file to parent's file list */
+  /* TODO: Check for error codes */
   add_to_meta_tree(parent, new_file);
 
-  return new_file;
+  *return_meta = new_file;
+  return NO_ERROR;
+
+  /* These steps will only be reached when error codes are detected */
+  failure_cleanup2:
+    for(x = i; x < i; x++) destroy_block_t(new_file->blocks[x]);
+  failure_cleanup1:
+    free(new_file->name);
+    free(new_file);
+
+    return err_code;
 }
 
 
@@ -257,15 +292,16 @@ meta_t *create_file(meta_t *parent, const char *name, uint64_t size,
 /**
  * create_meta_t()
  *
- * Allocates and initializes a new meta_t structure
+ * Allocates and initializes a new meta_t structure at 'return_meta'; Returns
+ * NO_ERROR or an error code
  */
-meta_t *create_meta_t()
+uint8_t create_meta_t(meta_t **return_meta)
 {
   meta_t *result;
 
   /* Allocate necessary memory  */
   result = malloc(sizeof(meta_t));
-  if(result == NULL) die_with_error("create_meta_t - malloc failed");
+  if(result == NULL) return ERR_MEM_ALLOC;
 
   /* Initialize fields */
   result->type = NOTHING;
@@ -287,7 +323,8 @@ meta_t *create_meta_t()
   result->next = NULL;
 
   /* Return initialized meta_t */
-  return result;
+  *return_meta = result;
+  return NO_ERROR;
 }
 
 
@@ -296,15 +333,21 @@ meta_t *create_meta_t()
  * create_subfolder
  *
  * Creates a new subfolder with the specified name and adds it to 'folder's
- * list of subfolders; Returns a pointer to the new subfolder
+ * list of subfolders; Sets 'return_meta' to point to new folder's meta_t;
+ * Returns NO_ERROR or an error code
  *
  * NOTE: create_subfolder copies 'name's value into a new string, so freeing
  *       the string that 'name' points to after creating the folder is safe.
  * NOTE: NOT THREAD SAFE
  */
-meta_t *create_subfolder(meta_t *parent, const char *name)
+uint8_t create_subfolder(meta_t *parent, const char *name, meta_t **return_meta)
 {
-  meta_t *new_folder = create_meta_t();
+  uint8_t err_code;
+  meta_t *new_folder;
+
+  /* Check for error codes */
+  err_code = create_meta_t(&new_folder);
+  if(err_code != NO_ERROR) return err_code;
 
   /* Populate the fields of the new folder's meta_t */
   new_folder->type = BACS_FOLDER_TYPE;
@@ -314,7 +357,8 @@ meta_t *create_subfolder(meta_t *parent, const char *name)
   /* Add subfolder to the parent file tree */
   add_to_meta_tree(parent, new_folder);
 
-  return new_folder;
+  *return_meta = new_folder;
+  return NO_ERROR;
 }
 
 
@@ -345,10 +389,12 @@ void destroy_meta_t(meta_t *target)
 /**
  * find_child_meta
  *
- * Returns a pointer to the meta_t of the target subfolder/file within the
- * 'folder' if it exists; Returns NULL otherwise
+ * Locates the target subfolder/file within the 'folder' if it exists; If target
+ * is found, a pointer is saved in 'return_meta'; Otherwise, 'return_meta' is
+ * set to NULL; Returns NO_ERROR or an error code
  */
-meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
+uint8_t find_child_meta(meta_t *folder, const char *target, uint8_t target_type,
+                        meta_t **return_meta)
 {
   meta_t *result;
 
@@ -356,7 +402,7 @@ meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
     result = folder->subfolders;
   else if(target_type == BACS_FILE_TYPE)
     result = folder->files;
-  else die_with_error("find_child_meta - invalid target_type");
+  else return ERR_FILE_META_TYPE;
 
   /* Iterate through child list until either a match is found or we reach
    * the end of the list */
@@ -365,7 +411,8 @@ meta_t *find_child_meta(meta_t *folder, const char *target, uint8_t target_type)
     result = result->next;
   }
 
-  return result;
+  *return_meta = result;
+  return NO_ERROR;
 }
 
 
@@ -395,7 +442,8 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
   while(path_parts[i+1]) {
     if(current_meta != NULL) {
       /* TODO: Check find_child_meta for error codes */
-      current_meta = find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE);
+      find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE, 
+        &current_meta);
     }
 
     /* Clean up after str_split */
@@ -409,7 +457,7 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
   /* Check for the last token based on the target type */
   if(current_meta != NULL) {
     /* TODO: Check find_child_meta for error codes */
-    current_meta = find_child_meta(current_meta, path_parts[i], target_type);
+    find_child_meta(current_meta, path_parts[i], target_type, &current_meta);
   }
 
   free(path_parts[i]);

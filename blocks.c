@@ -20,15 +20,16 @@
 /**
  * create_block_t()
  *
- * Allocates and initializes a new block_t structure
+ * Allocates and initializes a new block_t structure and assigns a pointer to it 
+ * to 'return_block'; Returns NO_ERROR or an error code
  */
-block_t *create_block_t()
+uint8_t create_block_t(block_t **return_block)
 {
   block_t *result;
 
   /* Allocate necessary memory */
   result = malloc(sizeof(block_t));
-  if(result == NULL) die_with_error("create_block_t - malloc failed");
+  if(result == NULL) return ERR_MEM_ALLOC;
 
   /* Initialize fields */
   uuid_generate(result->uuid);
@@ -46,7 +47,8 @@ block_t *create_block_t()
   all_blocks = result;
   all_blocks_num++;
 
-  return result;
+  *return_block = result;
+  return NO_ERROR;
 }
 
 

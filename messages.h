@@ -75,7 +75,8 @@ uint8_t parse_msg_get_file_request(char *msg, char **filename);
 uint8_t parse_msg_get_folder_meta_request(char *msg, char **dirname);
 uint8_t parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
                                      char **content);
-void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size);
+uint8_t parse_msg_post_file_request(char *msg, char **filename, 
+                                    uint64_t *file_size);
 uint8_t parse_msg_post_folder_request(char *msg, char **foldername);
 
 /* RESPONSES */
@@ -88,7 +89,8 @@ uint8_t create_msg_get_folder_meta_response(meta_t *folder, char **msg,
 void create_msg_get_servers_response(char **msg, uint64_t *msg_len);
 uint8_t create_msg_post_block_response(uuid_t uuid, char **msg, 
                                        uint64_t *msg_len);
-void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len);
+uint8_t create_msg_post_file_response(meta_t *file, char **msg, 
+                                      uint64_t *msg_len);
 void create_msg_post_folder_response(char **msg, uint64_t *msg_len);
 void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size, 
                                   char **content);
@@ -106,10 +108,11 @@ void create_msg_error(uint8_t action, uint8_t resource, uint8_t err_code,
 uint8_t parse_msg_error(char *msg, char **err_msg);
 
 
+
 /* ================ *
  * HELPER FUNCTIONS *
  * ================ */ 
-uint8_t  msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
+uint8_t msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
                        uuid_t uuid, uint32_t size, char *content,
                        char **msg, uint64_t *msg_len);
 uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 

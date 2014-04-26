@@ -455,7 +455,8 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
 /**
  * create_msg_post_file_response
  *
- * Generates a response string containing a list of block IDs in the file
+ * Generates a response string containing a list of block IDs in the file;
+ * returns NO_ERROR or an error code
  *
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
@@ -463,7 +464,8 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
  * NOTE: the method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
+uint8_t create_msg_post_file_response(meta_t *file, char **msg, 
+                                      uint64_t *msg_len)
 {
   char *string;
   uint64_t index, i;
@@ -476,8 +478,7 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
 
   /* Allocate memory for the message string and initalize it */
   string = calloc(*msg_len, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_post_file_response - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, *msg_len * sizeof(char));
 
   /* Slap a header on the message */
@@ -496,6 +497,7 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
 
   /* Return the finished message */
   *msg = string;
+  return NO_ERROR;
 }
 
 
@@ -1102,7 +1104,8 @@ void parse_msg_post_block_response(char *msg, uuid_t *uuid)
 /**
  * parse_msg_post_file_request
  *
- * Extracts the file name and size of a new file from the request
+ * Extracts the file name and size of a new file from the request; Returns 
+ * NO_ERROR or an error code
  *
  * msg       - the message to parse
  * filename  - (return val) pointer to string where filename should be stored
@@ -1111,7 +1114,8 @@ void parse_msg_post_block_response(char *msg, uuid_t *uuid)
  * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size)
+uint8_t parse_msg_post_file_request(char *msg, char **filename, 
+                                    uint64_t *file_size)
 {
   char *string;
   uint16_t string_len;
@@ -1121,7 +1125,7 @@ void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size
   if(get_header_resource(msg) != BACS_FILE || 
      get_header_action(msg) != POST ||
      get_header_type(msg) != BACS_REQUEST)
-    die_with_error("parse_msg_post_file_request - invalid message header");
+    return ERR_HEADER_MISMATCH;
 
   /* Extract the length of the filename string from the message; Add one more
      char to the end for a null terminator */
@@ -1130,8 +1134,7 @@ void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size
 
   /* Allocate memory for the filename string */
   string = calloc(string_len + 1, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_post_file_request - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, (string_len + 1) * sizeof(char));
 
   /* Extract filename from message */
@@ -1142,6 +1145,8 @@ void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size
   /* Extract file size from message */
   index = index + string_len;
   *file_size = *(uint64_t *)&msg[index];
+
+  return NO_ERROR;
 }
 
 
