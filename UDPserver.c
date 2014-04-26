@@ -16,10 +16,10 @@
     exit(1);
 }*/
 /*create_new_node(head,recv_message.seq_number, cli_addr.sin_addr, recv_message.port_number,recv_message.size_of_blocks)*/
-void create_new_node(Node* prev_node, int seq_number, long IP, int PN, int n){
-	struct Node* node = malloc(sizeof(Node)) ;
+void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, int n){
+	struct Node* node = malloc(sizeof(struct Node)) ;
 	node->next = NULL;
-	prev_node->next_node = node;
+	prev_node->next = node;
 	node->previous = prev_node;
 	node->IP = IP;
 	node->PN = PN;
@@ -28,7 +28,7 @@ void create_new_node(Node* prev_node, int seq_number, long IP, int PN, int n){
 	return;
 }
 
-void delete_node(Node* remove_current_node_from_list){
+void delete_node(struct Node* remove_current_node_from_list){
 	remove_current_node_from_list->previous = remove_current_node_from_list->next; 
 	free(remove_current_node_from_list);	
 }
@@ -90,37 +90,37 @@ struct Node* myrecv(void)
 		
 		if(recv_message.seq_number==0){
 			if(head == NULL){
-					create_new_node(head,recv_message.seq_number, cli_addr.sin_addr, recv_message.port_number,recv_message.size_of_blocks);
+					create_new_node(head,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks);
 				}
 			else{
 			    while(Itr!=NULL){
 					Itr = Itr->next;
 					}
 			    }
-			    create_new_node(Itr,recv_message.seq_number, cli_addr.sin_addr, recv_message.port_number,recv_message.size_of_blocks);
+			    create_new_node(Itr,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks);
 			}
 		
 			
 		else{
 			
 			Itr = head;
-			while((Itr->IP != cli_addr.sin_addr)&&(Itr!=NULL){
+			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr!=NULL)){
 				Itr = Itr->next;
 			}
 			temp = NULL;
 			/*Concatenate string blocks*/
 			strcpy(temp,recv_message.message);
 			strcat(Itr->message,temp);
-			counter--;
-			if(counter == 0){
+			Itr->counter--;
+			if(Itr->counter == 0){
 				close(sockfd);
 				delete_node(Itr);
-				return node ;	
+				return Itr;	
 			}
 			
 		}
 		
-	
+	}
 	
 	/*
 		recv_message.hostIP = my_addr.sin_addr;		/*Populate the struct with the IP address/
@@ -154,7 +154,6 @@ struct Node* myrecv(void)
 			{	    	
 				printf("Error: Recvfrom Failure\n");
 				return;/* (void*)FAILURE; */
-			}
 			//printf("Block Sequence Number Recd %d\n", recv_message.seq_number);
 		
 			//printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), recv_message.message);*/

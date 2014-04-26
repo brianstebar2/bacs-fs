@@ -12,6 +12,6 @@
 
 #include "definitions.h"
 
-struct Receive_message myrecv(void);
+struct Node* myrecv(void);
 
 #endif /* UDPSERVER_H */

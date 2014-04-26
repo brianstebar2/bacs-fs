@@ -68,10 +68,11 @@ struct Node{
 	long IP;
 	int PN;
 	int size_of_blocks;
-	char message[size_of_blocks];
+	char* message;
 	int counter;
 }; 
 
+struct Node* head;
 
 /* ========================= *
  * BLOCK METADATA STRUCTURES *
