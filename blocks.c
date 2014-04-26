@@ -15,19 +15,21 @@
 #include "blocks.h"
 #include "common.h"
 #include "die_with_error.h"
+#include "errors.h"
 
 /**
  * create_block_t()
  *
- * Allocates and initializes a new block_t structure
+ * Allocates and initializes a new block_t structure and assigns a pointer to it 
+ * to 'return_block'; Returns NO_ERROR or an error code
  */
-block_t *create_block_t()
+uint8_t create_block_t(block_t **return_block)
 {
   block_t *result;
 
   /* Allocate necessary memory */
   result = malloc(sizeof(block_t));
-  if(result == NULL) die_with_error("create_block_t - malloc failed");
+  if(result == NULL) return ERR_MEM_ALLOC;
 
   /* Initialize fields */
   uuid_generate(result->uuid);
@@ -45,7 +47,8 @@ block_t *create_block_t()
   all_blocks = result;
   all_blocks_num++;
 
-  return result;
+  *return_block = result;
+  return NO_ERROR;
 }
 
 
@@ -54,17 +57,16 @@ block_t *create_block_t()
  * destroy_block_t
  *
  * Destroys and frees all memory in the target block_t; Deletes the block's 
- * backing file
+ * backing file; Returns NO_ERROR or an error code
  */
-void destroy_block_t(block_t *target)
+uint8_t destroy_block_t(block_t *target)
 {
   char *filename;
   block_t *prev = target->prev;
   block_t *next = target->next;
 
   /* Ensure that the target block has been marked as deleted */
-  if(target->status != DELETED) 
-    die_with_error("destroy_block_t - target not marked as deleted");
+  if(target->status != DELETED) return ERR_BLOCK_NOT_DELETABLE;
 
   /* Delete block file */
   filename = generate_block_filename(target);
@@ -74,10 +76,13 @@ void destroy_block_t(block_t *target)
   /* Remove block from block list */
   if(prev != NULL) prev->next = next;
   if(next != NULL) next->prev = prev;
+  if(all_blocks == target) all_blocks = next;
   all_blocks_num--;
 
   /* Nuke the target */
   free(target);
+
+  return NO_ERROR;
 }
 
 
@@ -167,20 +172,19 @@ char *get_block_content(block_t *target)
 /**
  * populate_block
  *
- * Writes the content to a block and marks it as ready
+ * Writes the content to a block and marks it as ready; Returns NO_ERROR or an
+ * error code
  */
-void populate_block(block_t *target, char *content, int32_t content_size)
+uint8_t populate_block(block_t *target, char *content, int32_t content_size)
 {
   char *filename;
   FILE *block_file;
 
   /* Check if the target block has already been populated or deleted */
-  if(target->status != NEW) 
-    die_with_error("populate_block - target not a new block\n");
+  if(target->status != NEW) return ERR_BLOCK_NOT_NEW;
 
   /* Check that the provided content size matches the block metadata */
-  if(target->size != content_size)
-    die_with_error("populate_block - content size different than expected\n");
+  if(target->size != content_size) return ERR_BLOCK_SIZE_MISMATCH;
 
   /* TODO: Check that the content checksum computes properly */
 
@@ -194,4 +198,26 @@ void populate_block(block_t *target, char *content, int32_t content_size)
 
   /* Update status */
   target->status = READY;
+
+  return NO_ERROR;
+}
+
+
+
+/**
+ * print_block_list
+ *
+ * DEBUGGING; Prints out a representation of blocks in the global list
+ */
+void print_block_list()
+{
+  block_t *current = all_blocks;
+
+  printf("Global block list contents (%" PRIu64 " blocks):\n", all_blocks_num);
+  while(current != NULL) {
+    char* uuid_string = uuid_str(current->uuid);
+    printf(" - %s: %s, %d bytes\n", uuid_string, status_string(current->status),
+      current->size);
+    free(uuid_string);
+  }
 }

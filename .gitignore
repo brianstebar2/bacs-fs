@@ -19,7 +19,7 @@
 bacs_client
 bacs_server
 
-# Garbage temp files
+# Temporary files
 *.c~
 *.h~
 

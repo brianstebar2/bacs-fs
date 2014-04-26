@@ -15,6 +15,7 @@
 
 #include "common.h"
 #include "die_with_error.h"
+#include "errors.h"
 #include "messages.h"
 
 
@@ -24,17 +25,109 @@
  *
  * Generates a message string containing an error message
  *
- * err_msg  - error message string to send
+ * action   - action of the erroring request
+ * resource - resource of the erroring request
+ * err_msg  - null-terminated string containing the error message
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
  * 
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_error(uuid_t uuid, char **msg, uint64_t *msg_len)
+void create_msg_error(uint8_t action, uint8_t resource, uint8_t err_code, 
+                      char **msg, uint64_t *msg_len)
 {
-  /*msg_with_single_element(GET, BACS_BLOCK, BACS_REQUEST, uuid, sizeof(uuid_t), 
-                          msg, msg_len);*/
+  uint8_t status;
+  status = msg_with_single_element(action, resource, BACS_ERROR, 
+    (char *)error_message(err_code), strlen(error_message(err_code)), 
+    msg, msg_len);
+
+  if(status != NO_ERROR) 
+    die_with_error("create_msg_error - msg_with_single_element failed");
+}
+
+
+
+/**
+ * create_msg_delete_file_request
+ *
+ * Generates a message string requesting the deletion of a file
+ *
+ * filename - null-terminated string containing the fully-qualified path of the
+ *            target file
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_delete_file_request(char *filename, char **msg, 
+                                    uint64_t *msg_len)
+{
+  msg_with_single_element(DELETE, BACS_FILE, BACS_REQUEST, filename, 
+                          strlen(filename), msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_delete_folder_response
+ *
+ * Generates a message response string signifying that a file was successfully 
+ * deleted; Returns NO_ERROR or an error code
+ *
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+uint8_t create_msg_delete_file_response(char **msg, uint64_t *msg_len)
+{
+  return msg_with_single_element(DELETE, BACS_FILE, BACS_RESPONSE, 
+                                 NULL, 0, msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_delete_folder_request
+ *
+ * Generates a message string requesting the deletion of a folder
+ *
+ * foldername - null-terminated string containing the fully-qualified path of 
+ *              the target folder
+ * msg        - (return val) pointer where the message string will be stored
+ * msg_len    - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+void create_msg_delete_folder_request(char *foldername, char **msg, 
+                                      uint64_t *msg_len)
+{
+  msg_with_single_element(DELETE, BACS_FOLDER, BACS_REQUEST, foldername, 
+                          strlen(foldername), msg, msg_len);
+}
+
+
+
+/**
+ * create_msg_delete_folder_response
+ *
+ * Generates a message response string signifying that a folder was successfully 
+ * deleted; Returns NO_ERROR or an error code
+ *
+ * msg      - (return val) pointer where the message string will be stored
+ * msg_len  - (return val) pointer to size of 'msg' string
+ * 
+ * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
+ *       caller to free the allocation
+ */
+uint8_t create_msg_delete_folder_response(char **msg, uint64_t *msg_len)
+{
+  return msg_with_single_element(DELETE, BACS_FOLDER, BACS_RESPONSE, 
+                                 NULL, 0, msg, msg_len);
 }
 
 
@@ -62,7 +155,7 @@ void create_msg_get_block_request(uuid_t uuid, char **msg, uint64_t *msg_len)
 /**
  * create_msg_get_block_response
  *
- * Generates a message string return a block
+ * Generates a message string return a block; Returns NO_ERROR or an error code
  *
  * uuid    - UUID of the block being returned
  * size    - number of bytes in the block
@@ -73,10 +166,10 @@ void create_msg_get_block_request(uuid_t uuid, char **msg, uint64_t *msg_len)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
-                                   char **msg, uint64_t *msg_len)
+uint8_t create_msg_get_block_response(uuid_t uuid, uint32_t size, char *content,
+                                      char **msg, uint64_t *msg_len)
 {
-  msg_with_block(GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content, 
+  return msg_with_block(GET, BACS_BLOCK, BACS_RESPONSE, uuid, size, content, 
                  msg, msg_len);
 }
 
@@ -107,7 +200,8 @@ void create_msg_get_file_request(char *filename, char **msg, uint64_t *msg_len)
  * create_msg_get_file_response
  *
  * Generates a message response string include the list of the file's block 
- * UUIDs and the list of server IPs storing each block
+ * UUIDs and the list of server IPs storing each block; Returns NO_ERROR or an
+ * error code
  *
  * file_meta - meta_t for the file containing the metadata to send
  * msg       - (return val) pointer where the message string will be stored
@@ -116,8 +210,8 @@ void create_msg_get_file_request(char *filename, char **msg, uint64_t *msg_len)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_file_response(meta_t *file_meta, char **msg, 
-                                  uint64_t *msg_len)
+uint8_t create_msg_get_file_response(meta_t *file_meta, char **msg, 
+                                     uint64_t *msg_len)
 {
   char *string;
   uint64_t index, i;
@@ -140,8 +234,7 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
 
   /* Allocate memory for the message */
   string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_get_file_response - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, num_chars*sizeof(char));
 
   /* Slap a header on the message */
@@ -170,6 +263,8 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -178,7 +273,8 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
  * create_msg_get_folder_meta_request
  *
  * Generates a message string requesting the list of files, folders, and
- * associated metadata within the specified folder
+ * associated metadata within the specified folder; Returns NO_ERROR or an error
+ * code
  *
  * dirname  - null-terminated string containing the fully-qualified path of the
  *            target directory
@@ -188,11 +284,11 @@ void create_msg_get_file_response(meta_t *file_meta, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_folder_meta_request(char *dirname, char **msg, 
-                                        uint64_t *msg_len)
+uint8_t create_msg_get_folder_meta_request(char *dirname, char **msg, 
+                                           uint64_t *msg_len)
 {
-  msg_with_single_element(GET, BACS_FOLDER, BACS_REQUEST, 
-                          dirname, (uint32_t)strlen(dirname), msg, msg_len);
+  return msg_with_single_element(GET, BACS_FOLDER, BACS_REQUEST, dirname, 
+    (uint32_t)strlen(dirname), msg, msg_len);
 }
 
 
@@ -201,7 +297,8 @@ void create_msg_get_folder_meta_request(char *dirname, char **msg,
  * create_msg_get_folder_meta_response
  *
  * Generates a message response string include the list basic_meta_t's for both
- * the files and folders contained in the specified meta_t
+ * the files and folders contained in the specified meta_t; returns NO_ERROR or
+ * an error code
  *
  * folder   - meta_t for the folder containing the metadata to send
  * msg      - (return val) pointer where the message string will be stored
@@ -210,8 +307,8 @@ void create_msg_get_folder_meta_request(char *dirname, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
-                                         uint64_t *msg_len)
+uint8_t create_msg_get_folder_meta_response(meta_t *folder, char **msg, 
+                                            uint64_t *msg_len)
 {
   char *string;
   int index, i, num_metas;
@@ -244,8 +341,7 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
 
   /* Allocate memory for the message */
   string = calloc(num_chars, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_get_folder_meta_response - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, num_chars*sizeof(char));
 
   /* Slap a header on the message */
@@ -286,6 +382,8 @@ void create_msg_get_folder_meta_response(meta_t *folder, char **msg,
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -370,7 +468,7 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
  * create_msg_post_block_response
  *
  * Generates a message response string signifying that a block was successfully 
- * uploaded
+ * uploaded; Returns NO_ERROR or an error code
  *
  * uuid     - UUID of the block that was successfully uploaded
  * msg      - (return val) pointer where the message string will be stored
@@ -379,10 +477,11 @@ void create_msg_post_block_request(uuid_t uuid, uint32_t size, char *content,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_block_response(uuid_t uuid, char **msg, uint64_t *msg_len)
+uint8_t create_msg_post_block_response(uuid_t uuid, char **msg, 
+                                       uint64_t *msg_len)
 {
-  msg_with_single_element(POST, BACS_BLOCK, BACS_RESPONSE, 
-                          uuid, sizeof(uuid_t), msg, msg_len);
+  return msg_with_single_element(POST, BACS_BLOCK, BACS_RESPONSE, 
+                                 uuid, sizeof(uuid_t), msg, msg_len);
 }
 
 
@@ -440,7 +539,8 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
 /**
  * create_msg_post_file_response
  *
- * Generates a response string containing a list of block IDs in the file
+ * Generates a response string containing a list of block IDs in the file;
+ * returns NO_ERROR or an error code
  *
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
@@ -448,7 +548,8 @@ void create_msg_post_file_request(char *filename, uint64_t file_size,
  * NOTE: the method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
+uint8_t create_msg_post_file_response(meta_t *file, char **msg, 
+                                      uint64_t *msg_len)
 {
   char *string;
   uint64_t index, i;
@@ -461,8 +562,7 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
 
   /* Allocate memory for the message string and initalize it */
   string = calloc(*msg_len, sizeof(char));
-  if(string == NULL) 
-    die_with_error("create_msg_post_file_response - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, *msg_len * sizeof(char));
 
   /* Slap a header on the message */
@@ -481,6 +581,7 @@ void create_msg_post_file_response(meta_t *file, char **msg, uint64_t *msg_len)
 
   /* Return the finished message */
   *msg = string;
+  return NO_ERROR;
 }
 
 
@@ -510,7 +611,7 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  * create_msg_post_folder_response
  *
  * Generates a message response string signifying that a folder was successfully 
- * created
+ * created; Returns NO_ERROR or an error code
  *
  * msg      - (return val) pointer where the message string will be stored
  * msg_len  - (return val) pointer to size of 'msg' string
@@ -518,10 +619,10 @@ void create_msg_post_folder_request(char *foldername, char **msg,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void create_msg_post_folder_response(char **msg, uint64_t *msg_len)
+uint8_t create_msg_post_folder_response(char **msg, uint64_t *msg_len)
 {
-  msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
-                          NULL, 0, msg, msg_len);
+  return msg_with_single_element(POST, BACS_FOLDER, BACS_RESPONSE, 
+                                 NULL, 0, msg, msg_len);
 }
 
 
@@ -571,7 +672,7 @@ const char *get_header_action_string(uint8_t action)
     case GET:     return "GET"; break;
     case POST:    return "POST"; break;
     case PUT:     return "PUT"; break;
-    case DELETE:  return "DELTE"; break;
+    case DELETE:  return "DELETE"; break;
     default:      return "UNKNOWN";
   } 
 }
@@ -640,7 +741,8 @@ const char *get_header_type_string(uint8_t type)
 /**
  * msg_with_block
  *
- * Populates a message string with the specified headers and a block
+ * Populates a message string with the specified headers and a block; Returns
+ * NO_ERROR or an error code
  *
  * action   - message action identifier
  * resource - target resource for this message
@@ -654,9 +756,9 @@ const char *get_header_type_string(uint8_t type)
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
-                    uuid_t uuid, uint32_t size, char *content,
-                    char **msg, uint64_t *msg_len)
+uint8_t msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
+                       uuid_t uuid, uint32_t size, char *content,
+                       char **msg, uint64_t *msg_len)
 {
   char *string;
   uint32_t index;
@@ -670,8 +772,7 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
 
   /* Allocate memory for the message string and initialize it */
   string = calloc(*msg_len, sizeof(char));
-  if(string == NULL) 
-    die_with_error("msg_with_block - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, *msg_len * sizeof(char));
 
   /* Slap a header on the message */
@@ -691,6 +792,8 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
 
   /* Return the finished message */
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -698,7 +801,8 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
 /**
  * msg_with_single_element
  *
- * Populates a message string with the specified headers and single data element
+ * Populates a message string with the specified headers and single data element;
+ * Returns either NO_ERROR or an error code
  *
  * action      - message action identifier
  * resource    - target resource for this message
@@ -711,9 +815,9 @@ void msg_with_block(uint8_t action, uint8_t resource, uint8_t type,
  * NOTE: this method allocates memory for 'msg'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
-                             void *element, uint32_t element_len, char **msg, 
-                             uint64_t *msg_len)
+uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type, 
+                                void *element, uint32_t element_len, char **msg, 
+                                uint64_t *msg_len)
 {
   char *string;
   int index;
@@ -726,7 +830,7 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
   /* Allocate memory for the message string */
   string = calloc(num_chars, sizeof(char));
   if(string == NULL) 
-    die_with_error("msg_with_single_element- calloc failed");
+    return ERR_MEM_ALLOC;
   memset(string, 0, num_chars*sizeof(char));
 
   /* Slap a header on the message */
@@ -741,6 +845,8 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
+
+  return NO_ERROR;
 }
 
 
@@ -748,7 +854,8 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
 /**
  * parse_msg_block
  *
- * Extracts the UUID, content size, and content of the block from the request
+ * Extracts the UUID, content size, and content of the block from the request;
+ * Returns NO_ERROR or an error code
  *
  * action   - message action identifier
  * resource - target resource for this message
@@ -761,8 +868,9 @@ void msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
  * NOTE: this method allocates memory for 'content'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type, 
-                     uuid_t *uuid, uint32_t *size, char **content)
+uint8_t parse_msg_block(char *msg, uint8_t action, uint8_t resource, 
+                        uint8_t type, uuid_t *uuid, uint32_t *size, 
+                        char **content)
 {
   uint32_t index;
   uuid_t *msg_uuid;
@@ -772,7 +880,7 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
   if(get_header_resource(msg) != resource || 
      get_header_action(msg) != action ||
      get_header_type(msg) != type)
-    die_with_error("parse_msg_block - invalid message header");
+    return ERR_HEADER_MISMATCH;
 
   /* Extract the block's UUID */
   index = BACS_HEADER_SIZE;
@@ -785,8 +893,7 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
 
   /* Allocate memory for the block content */
   string = calloc(*size, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_block - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, *size * sizeof(char));
 
   /* Extract content from message */
@@ -795,6 +902,93 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
   *content = string;
 
   /* TODO: Extract checksum from message */
+
+  return NO_ERROR;
+}
+
+
+
+/**
+ * parse_msg_delete_file_request
+ *
+ * Extracts the filename from the request; Returns NO_ERROR or an error code
+ *
+ * msg      - the message to parse
+ * filename - (return val) pointer to string where filename should be stored
+ * 
+ * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+uint8_t parse_msg_delete_file_request(char *msg, char **filename)
+{
+  return parse_msg_single_string(msg, DELETE, BACS_FILE, BACS_REQUEST, filename);
+}
+
+
+
+/**
+ * parse_msg_delete_file_response
+ *
+ * Checks the headers from the response
+ *
+ * msg     - the message to parse
+ */
+void parse_msg_delete_file_response(char *msg)
+{
+  parse_msg_single_string(msg, DELETE, BACS_FILE, BACS_RESPONSE, NULL);
+}
+
+
+
+/**
+ * parse_msg_delete_file_request
+ *
+ * Extracts the foldername from the request; Returns NO_ERROR or an error code
+ *
+ * msg        - the message to parse
+ * foldername - (return val) pointer to string where foldername should be stored
+ * 
+ * NOTE: this method allocates memory for 'foldername'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+uint8_t parse_msg_delete_folder_request(char *msg, char **foldername)
+{
+  return parse_msg_single_string(msg, DELETE, BACS_FOLDER, BACS_REQUEST, 
+    foldername);
+}
+
+
+
+/**
+ * parse_msg_delete_folder_response
+ *
+ * Checks the headers from the response
+ *
+ * msg     - the message to parse
+ */
+void parse_msg_delete_folder_response(char *msg)
+{
+  parse_msg_single_string(msg, DELETE, BACS_FOLDER, BACS_RESPONSE, NULL);
+}
+
+
+
+/**
+ * parse_msg_error
+ *
+ * Extracts the error message from the message; Returns NO_ERROR or error code
+ *
+ * msg     - the message to parse
+ * err_msg - (return val) pointer to a string where the error message should be
+ *           stored
+ * 
+ * NOTE: this method allocates memory for 'err_msg'; it is the responsiblity 
+ *       of the caller to free the allocation
+ */
+uint8_t parse_msg_error(char *msg, char **err_msg)
+{
+  return parse_msg_single_string(msg, get_header_action(msg), 
+    get_header_resource(msg), BACS_ERROR, err_msg);
 }
 
 
@@ -802,18 +996,22 @@ void parse_msg_block(char *msg, uint8_t action, uint8_t resource, uint8_t type,
 /**
  * parse_msg_get_block_request
  *
- * Extracts the UUID of the block from the request
+ * Extracts the UUID of the block from the request; Returns NO_ERROR or an error
+ * code
  *
  * msg     - the message to parse
  * uuid    - (return val) pointer to uuid_t where UUID should be written
  */
-void parse_msg_get_block_request(char *msg, uuid_t *uuid)
+uint8_t parse_msg_get_block_request(char *msg, uuid_t *uuid)
 {
   char *str_uuid;
   uuid_t *msg_uuid;
+  uint8_t err_code;
 
   /* Get UUID encoded as a string from message */
-  parse_msg_single_string(msg, GET, BACS_BLOCK, BACS_REQUEST, &str_uuid);
+  err_code = parse_msg_single_string(msg, GET, BACS_BLOCK, BACS_REQUEST, 
+                                     &str_uuid);
+  if(err_code != NO_ERROR) return err_code;
 
   /* Extract UUID from string */
   msg_uuid = (uuid_t *)str_uuid;
@@ -821,6 +1019,8 @@ void parse_msg_get_block_request(char *msg, uuid_t *uuid)
 
   /* Clean up */
   free(str_uuid);
+
+  return NO_ERROR;
 }
 
 
@@ -849,7 +1049,7 @@ void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size,
 /**
  * parse_msg_get_file_request
  *
- * Extracts the filename from the request
+ * Extracts the filename from the request; Returns NO_ERROR or an error code
  *
  * msg      - the message to parse
  * filename - (return val) pointer to string where filename should be stored
@@ -857,9 +1057,9 @@ void parse_msg_get_block_response(char *msg, uuid_t *uuid, uint32_t *size,
  * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_get_file_request(char *msg, char **filename)
+uint8_t parse_msg_get_file_request(char *msg, char **filename)
 {
-  parse_msg_single_string(msg, GET, BACS_FILE, BACS_REQUEST, filename);
+  return parse_msg_single_string(msg, GET, BACS_FILE, BACS_REQUEST, filename);
 }
 
 
@@ -925,7 +1125,7 @@ void parse_msg_get_file_response(char *msg, basic_block_t **blocks,
 /**
  * parse_msg_get_folder_meta_request
  *
- * Extracts the folder name from the request
+ * Extracts the folder name from the request; returns NO_ERROR or an error code
  *
  * msg      - the message to parse
  * dirname  - (return val) pointer to string where folder name should be stored
@@ -933,9 +1133,9 @@ void parse_msg_get_file_response(char *msg, basic_block_t **blocks,
  * NOTE: this method allocates memory for 'dirname'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_get_folder_meta_request(char *msg, char **dirname)
+uint8_t parse_msg_get_folder_meta_request(char *msg, char **dirname)
 {
-  parse_msg_single_string(msg, GET, BACS_FOLDER, BACS_REQUEST, dirname);
+  return parse_msg_single_string(msg, GET, BACS_FOLDER, BACS_REQUEST, dirname);
 }
 
 
@@ -1004,7 +1204,8 @@ void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas,
 /**
  * parse_msg_post_block_request
  *
- * Extracts the UUID, content size, and content of the block from the request
+ * Extracts the UUID, content size, and content of the block from the request;
+ * Returns NO_ERROR or an error code
  *
  * msg     - the message to parse
  * uuid    - (return val) pointer to uuid_t where UUID should be written
@@ -1014,10 +1215,11 @@ void parse_msg_get_folder_meta_response(char *msg, basic_meta_t **metas,
  * NOTE: this method allocates memory for 'content'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
-                                  char **content)
+uint8_t parse_msg_post_block_request(char *msg, uuid_t *uuid, uint32_t *size, 
+                                     char **content)
 {
-  parse_msg_block(msg, POST, BACS_BLOCK, BACS_REQUEST, uuid, size, content);
+  return parse_msg_block(msg, POST, BACS_BLOCK, BACS_REQUEST, uuid, size, 
+    content);
 }
 
 
@@ -1051,7 +1253,8 @@ void parse_msg_post_block_response(char *msg, uuid_t *uuid)
 /**
  * parse_msg_post_file_request
  *
- * Extracts the file name and size of a new file from the request
+ * Extracts the file name and size of a new file from the request; Returns 
+ * NO_ERROR or an error code
  *
  * msg       - the message to parse
  * filename  - (return val) pointer to string where filename should be stored
@@ -1060,7 +1263,8 @@ void parse_msg_post_block_response(char *msg, uuid_t *uuid)
  * NOTE: this method allocates memory for 'filename'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size)
+uint8_t parse_msg_post_file_request(char *msg, char **filename, 
+                                    uint64_t *file_size)
 {
   char *string;
   uint16_t string_len;
@@ -1070,7 +1274,7 @@ void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size
   if(get_header_resource(msg) != BACS_FILE || 
      get_header_action(msg) != POST ||
      get_header_type(msg) != BACS_REQUEST)
-    die_with_error("parse_msg_post_file_request - invalid message header");
+    return ERR_HEADER_MISMATCH;
 
   /* Extract the length of the filename string from the message; Add one more
      char to the end for a null terminator */
@@ -1079,8 +1283,7 @@ void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size
 
   /* Allocate memory for the filename string */
   string = calloc(string_len + 1, sizeof(char));
-  if(string == NULL) 
-    die_with_error("parse_msg_post_file_request - calloc failed");
+  if(string == NULL) return ERR_MEM_ALLOC;
   memset(string, 0, (string_len + 1) * sizeof(char));
 
   /* Extract filename from message */
@@ -1091,6 +1294,8 @@ void parse_msg_post_file_request(char *msg, char **filename, uint64_t *file_size
   /* Extract file size from message */
   index = index + string_len;
   *file_size = *(uint64_t *)&msg[index];
+
+  return NO_ERROR;
 }
 
 
@@ -1143,7 +1348,8 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
 /**
  * parse_msg_post_folder_request
  *
- * Extracts the name of the new folder from the request
+ * Extracts the name of the new folder from the request; Returns NO_ERROR or an
+ * error code
  *
  * msg        - the message to parse
  * foldername - (return val) pointer to a string where the new folder's name 
@@ -1152,9 +1358,10 @@ void parse_msg_post_file_response(char *msg, uuid_t **uuids, uint64_t *num_uuids
  * NOTE: this method allocates memory for 'foldername'; it is the responsiblity 
  *       of the caller to free the allocation
  */
-void parse_msg_post_folder_request(char *msg, char **foldername)
+uint8_t parse_msg_post_folder_request(char *msg, char **foldername)
 {
-  parse_msg_single_string(msg, POST, BACS_FOLDER, BACS_REQUEST, foldername);
+  return parse_msg_single_string(msg, POST, BACS_FOLDER, BACS_REQUEST, 
+                                 foldername);
 }
 
 
@@ -1176,7 +1383,8 @@ void parse_msg_post_folder_response(char *msg)
 /**
  * parse_msg_single_string
  *
- * Parses a message string with the specified headers containing a single string
+ * Parses a message string with the specified headers containing a single string;
+ * Returns NO_ERROR or an error code
  *
  * msg      - the message to parse
  * action   - message action identifier
@@ -1187,8 +1395,8 @@ void parse_msg_post_folder_response(char *msg)
  * NOTE: this method allocates memory for 'str'; it is the responsiblity of the 
  *       caller to free the allocation
  */
-void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
-                             uint8_t type, char **str)
+uint8_t parse_msg_single_string(char *msg, uint8_t action, uint8_t resource, 
+                                uint8_t type, char **str)
 {
   char *string;
   uint32_t string_len;
@@ -1208,8 +1416,7 @@ void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource,
     /* Allocate memory for the string; Add one more char to the end for a 
      * null terminator */
     string = calloc(string_len + 1, sizeof(char));
-    if(string == NULL) 
-      die_with_error("parse_msg_single_string - calloc failed");
+    if(string == NULL) return ERR_MEM_ALLOC;
     memset(string, 0, (string_len + 1) * sizeof(char));
 
     /* Extract string from message */
@@ -1217,6 +1424,8 @@ void parse_msg_single_string(char *msg, uint8_t action, uint8_t resource,
     strncpy(string, &msg[index], string_len);
     *str = string;
   }
+
+  return NO_ERROR;
 }
 
 
@@ -1244,32 +1453,30 @@ void print_msg(char *msg)
             case POST:  print_msg_post_block_request(msg); break;
             default:    printf("INVALID ACTION");
           }
-
           break;
 
         /* FILE requests */
         case BACS_FILE:  
           switch(get_header_action(msg)) {
-            case GET:   print_msg_get_file_request(msg); break;
-            case POST:  print_msg_post_file_request(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_file_request(msg); break;
+            case GET:    print_msg_get_file_request(msg); break;
+            case POST:   print_msg_post_file_request(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
 
         /* FOLDER requests */
         case BACS_FOLDER:  
           switch(get_header_action(msg)) {
-            case GET:  print_msg_get_folder_meta_request(msg); break;
-            case POST: print_msg_post_folder_request(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_folder_request(msg); break;
+            case GET:    print_msg_get_folder_meta_request(msg); break;
+            case POST:   print_msg_post_folder_request(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
 
         default: printf("UNKNOWN RESOURCE");
       }
-
       break;
 
     case BACS_RESPONSE:
@@ -1282,34 +1489,33 @@ void print_msg(char *msg)
             case POST:  print_msg_post_block_response(msg); break;
             default:    printf("INVALID ACTION");
           }
-
           break;
 
         /* FILE responses */
         case BACS_FILE:  
           switch(get_header_action(msg)) {
-            case GET:   print_msg_get_file_response(msg); break;
-            case POST:  print_msg_post_file_response(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_file_response(msg); break;
+            case GET:    print_msg_get_file_response(msg); break;
+            case POST:   print_msg_post_file_response(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
 
         /* FOLDER responses */
         case BACS_FOLDER:  
           switch(get_header_action(msg)) {
-            case GET:  print_msg_get_folder_meta_response(msg); break;
-            case POST: print_msg_post_folder_response(msg); break;
-            default:    printf("INVALID ACTION");
+            case DELETE: print_msg_delete_folder_response(msg); break;
+            case GET:    print_msg_get_folder_meta_response(msg); break;
+            case POST:   print_msg_post_folder_response(msg); break;
+            default:     printf("INVALID ACTION");
           }
-
           break;
-
 
         default: printf("UNKNOWN RESOURCE");
       }
+      break;
 
-      break;      
+    case BACS_ERROR: print_msg_error(msg); break;  
 
     default: printf("UNKNOWN MESSAGE TYPE");
   }
@@ -1320,9 +1526,84 @@ void print_msg(char *msg)
 
 
 /**
+ * print_msg_delete_file_request
+ *
+ * DEBUGGING; Prints out contents of DELETE FILE request in human-readable 
+ * format
+ */
+void print_msg_delete_file_request(char *msg)
+{
+  char *filename;
+  parse_msg_delete_file_request(msg, &filename);
+  printf("%s\n", filename);
+  free(filename);
+}
+
+
+
+/**
+ * print_msg_delete_file_response
+ *
+ * DEBUGGING; Prints out contents of DELETE FILE response in human-readable 
+ * format
+ */
+void print_msg_delete_file_response(char *msg)
+{
+  parse_msg_delete_file_response(msg);
+  printf("SUCCESS");
+}
+
+
+
+/**
+ * print_msg_delete_folder_request
+ *
+ * DEBUGGING; Prints out contents of DELETE FOLDER request in human-readable 
+ * format
+ */
+void print_msg_delete_folder_request(char *msg)
+{
+  char *foldername;
+  parse_msg_delete_folder_request(msg, &foldername);
+  printf("%s\n", foldername);
+  free(foldername);
+}
+
+
+
+/**
+ * print_msg_delete_folder_response
+ *
+ * DEBUGGING; Prints out contents of DELETE FOLDER response in human-readable 
+ * format
+ */
+void print_msg_delete_folder_response(char *msg)
+{
+  parse_msg_delete_folder_response(msg);
+  printf("SUCCESS");
+}
+
+
+
+/**
+ * print_msg_error
+ *
+ * DEBUGGING; Prints out contents of error messages in human-readable format
+ */
+void print_msg_error(char *msg)
+{
+  char *err_msg;
+  parse_msg_error(msg, &err_msg);
+  printf("%s\n", err_msg);
+  free(err_msg);
+}
+
+
+
+/**
  * print_msg_get_block_request
  *
- * DEBUGGING; Prints out contents of GET BACS_BLOCK request in human-readable 
+ * DEBUGGING; Prints out contents of GET BLOCK request in human-readable 
  * format
  */
 void print_msg_get_block_request(char *msg)
@@ -1341,7 +1622,7 @@ void print_msg_get_block_request(char *msg)
 /**
  * print_msg_get_block_response
  *
- * DEBUGGING; Prints out contents of GET BACS_BLOCK response in human-readable 
+ * DEBUGGING; Prints out contents of GET BLOCK response in human-readable 
  * format
  */
 void print_msg_get_block_response(char *msg)
@@ -1443,7 +1724,7 @@ void print_msg_get_folder_meta_response(char *msg)
 /**
  * print_msg_post_block_request
  *
- * DEBUGGING; Prints out contents of POST BACS_BLOCK request in human-readable 
+ * DEBUGGING; Prints out contents of POST BLOCK request in human-readable 
  * format
  */
 void print_msg_post_block_request(char *msg)
@@ -1467,7 +1748,7 @@ void print_msg_post_block_request(char *msg)
 /**
  * print_msg_post_block_response
  *
- * DEBUGGING; Prints out contents of POST BACS_BLOCK response in human-readable 
+ * DEBUGGING; Prints out contents of POST BLOCK response in human-readable 
  * format
  */
 void print_msg_post_block_response(char *msg)
@@ -1486,7 +1767,7 @@ void print_msg_post_block_response(char *msg)
 /**
  * print_msg_post_file_request
  *
- * DEBUGGING; Prints out contents of POST BACS_FILE request in human-readable 
+ * DEBUGGING; Prints out contents of POST FILE request in human-readable 
  * format
  */
 void print_msg_post_file_request(char *msg)
@@ -1503,7 +1784,7 @@ void print_msg_post_file_request(char *msg)
 /**
  * print_msg_post_file_response
  *
- * DEBUGGING; Prints out contents of POST BACS_FILE response in human-readable 
+ * DEBUGGING; Prints out contents of POST FILE response in human-readable 
  * format
  */
 void print_msg_post_file_response(char *msg)
@@ -1527,7 +1808,7 @@ void print_msg_post_file_response(char *msg)
 /**
  * print_msg_post_folder_request
  *
- * DEBUGGING; Prints out contents of POST BACS_FOLDER request in human-readable 
+ * DEBUGGING; Prints out contents of POST FOLDER request in human-readable 
  * format
  */
 void print_msg_post_folder_request(char *msg)
@@ -1543,7 +1824,7 @@ void print_msg_post_folder_request(char *msg)
 /**
  * print_msg_post_folder_response
  *
- * DEBUGGING; Prints out contents of POST BACS_FOLDER response in human-readable 
+ * DEBUGGING; Prints out contents of POST FOLDER response in human-readable 
  * format
  */
 void print_msg_post_folder_response(char *msg)
