@@ -250,7 +250,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
   	free(msg);
 	if(num_uuids==0)
 		printf("***************error num_uuids\n");
-	  send_file(filepath, IPaddr, uuids, num_uuids);
+	  send_file(filepath, IPaddr, uuids, num_uuids, PN);
 	  free(uuids);
 
     printf("\n...File uploaded to path: %s\n",remote_path);
@@ -310,7 +310,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
 	free(err_msg_string);
 	free(resp->message);
 	free(resp);
-	  send_file(filepath, IPaddr, uuids, num_uuids);
+	  send_file(filepath, IPaddr, uuids, num_uuids, PN);
 	  free(uuids);
 	/*Upload file end*/
         printf("\n...File uploaded to path: %s\n",remote_path);
@@ -654,11 +654,11 @@ int main(int argc, char *argv[])
   memset(remote_path,0, MAX_LENGTH);
   /* strcpy(local_path,"/local"); */
   strcpy(remote_path,"/remote");
-/*  if (getcwd(local_path, 1024) != NULL)
+ if (getcwd(local_path, 1024) != NULL)
     printf("\nlocal_path: %s\n", local_path);
   else
-    perror("getcwd() error");*/
-strcpy(local_path,"/home/charmi/Desktop/123");
+    perror("getcwd() error");
+/*strcpy(local_path,"/home/charmi/Desktop/123");*/
 printf("\nlocal_path: %s\n", local_path);
   printf("remote_path: %s\n", remote_path);
 
@@ -681,8 +681,11 @@ printf("\nlocal_path: %s\n", local_path);
     {
       long fsize;
       char *string;
-
-      fp=fopen("/home/charmi/Documents/BACS/HELP","r");
+	char filepath[1024];
+	strcpy(filepath, local_path);
+	strcpy(filepath, "/");
+	strcpy(filepath, "HELP");
+      fp=fopen(filepath,"r");
       fseek(fp, 0, SEEK_END);
       fsize = ftell(fp);
       fseek(fp, 0, SEEK_SET);
