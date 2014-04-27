@@ -20,7 +20,7 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 
 	struct Send_message send_message;
 
-	int total_blocks = ceil(size_of_blocks/BUFLEN);
+	int total_blocks = ceil((float)size_of_blocks/BUFLEN);
 	send_message.size_of_blocks = size_of_blocks;
 	struct sockaddr_in serv_addr;
 	int sockfd, i, slen=sizeof(serv_addr);
