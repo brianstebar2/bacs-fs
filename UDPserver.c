@@ -19,11 +19,13 @@
 void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, int n){
 	struct Node* node = malloc(sizeof(struct Node)) ;
 	node->next = NULL;
-	prev_node->next = node;
+	
 	if(prev_node == NULL) 
 		head = node;
-	if(prev_node!=NULL)
-		node->previous = prev_node;
+	
+	else(prev_node!=NULL)
+		prev_node->next = node;
+	node->previous = prev_node;
 	
 	node->IP = IP;
 	node->PN = PN;
