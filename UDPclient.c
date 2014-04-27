@@ -33,7 +33,7 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 
 	/*Timer variables*/
 	
-	timeout.tv_sec = 15;
+	timeout.tv_sec = 5;
 	timeout.tv_usec = 0;
 
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
