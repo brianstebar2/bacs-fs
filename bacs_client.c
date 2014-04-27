@@ -996,6 +996,8 @@ int main(int argc, char *argv[])
 	}
     else if(strcmp(command,"exit")==0)
     {
+	socket_send_close();
+  	socket_receive_close();
 	free(command); 
   	free(input); 
   	free(local_path); 
