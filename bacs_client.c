@@ -37,10 +37,15 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		memset(dirpath, 0, 1024);
 		if(strcmp(path,"/")==0 && strcmp(dir,"..")==0)
 			strcpy(dirpath,path);
-		else if((strcmp(dir,"..")!=0))
+		else if(strcmp(dir,"..")!=0 && strcmp(path,"/")!=0)
 		{
 			strcpy(dirpath,path);
   			strcat(dirpath,"/");
+  			strcat(dirpath,dir);
+		}
+		else if(strcmp(dir,"..")!=0 && strcmp(path,"/")==0)
+		{
+			strcpy(dirpath,path);
   			strcat(dirpath,dir);
 		}
 		else if(strcmp(path,"/")!=0)
@@ -96,10 +101,15 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
   		memset(dirpath, 0, 1024);
 		if(strcmp(path,"/")==0 && strcmp(dir,"..")==0)
 			strcpy(dirpath, path);
-		else if(strcmp(dir,"..")!=0)
+		else if(strcmp(dir,"..")!=0 && strcmp(path,"/")!=0)
 		{
 			strcpy(dirpath,path);
   			strcat(dirpath,"/");
+  			strcat(dirpath,dir);
+		}
+		else if(strcmp(dir,"..")!=0 && strcmp(path,"/")==0)
+		{
+			strcpy(dirpath,path);
   			strcat(dirpath,dir);
 		}
 		else if(strcmp(path,"/")!=0)
@@ -140,21 +150,23 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 			printf("%s\n",err_msg_string);
 		}
     		else
-			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
-		free(err_msg_string);
-		printf("remote directory contains: \n");
-		for(i=0; i < num_metas; i++)
 		{
-			printf("%s\n",basic_metas[i].name);
-			free(basic_metas[i].name);
+			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
+			printf("remote directory contains: \n");
+			for(i=0; i < num_metas; i++)
+			{
+				printf("%s\n",basic_metas[i].name);
+				free(basic_metas[i].name);
+			}
+			memset(path, 0, 1024);
+			strcpy(path, dirpath);
 		}
+		free(err_msg_string);
 		free(msg);
 		free(resp->message);
 		free(resp);
 		free(basic_metas);
-		memset(path, 0, 1024);
-		strcpy(path, dirpath);
-    		printf("Changed to directory '%s'\n", path);
+		printf("Remote directory '%s'\n", path);
 	}
   return 0;
 }
@@ -186,27 +198,27 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 		ErrorCode error;
 		struct Node* resp;
 		create_msg_get_folder_meta_request(path, &msg, &msg_len);
-		printf("Client sends: ");
-		print_msg(msg);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
 		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
-    if(get_header_type(resp_msg) == BACS_ERROR)
+		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);
 		}
     		else
-			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
-		free(err_msg_string);
-		printf("remote directory contains: \n");
-		for(i=0; i < num_metas; i++)
 		{
-			printf("%s\n",basic_metas[i].name);
-			free(basic_metas[i].name);
+			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);		
+			printf("remote directory contains: \n");
+			for(i=0; i < num_metas; i++)
+			{
+				printf("%s\n",basic_metas[i].name);
+				free(basic_metas[i].name);
+			}
 		}
+		free(err_msg_string);
 		free(msg);
 		free(resp->message);
 		free(resp);
@@ -239,7 +251,8 @@ void make_dir(char* dir, bool l, char* path, unsigned long IPaddr, int PN)
 	struct Node* resp;
 	char dirpath[1024];
     	strcpy(dirpath,path);
-    	strcat(dirpath,"/");
+	if(strcmp(path,"/")!=0)
+    		strcat(dirpath,"/");
     	strcat(dirpath,dir);
 	create_msg_post_folder_request(dirpath, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
@@ -253,13 +266,14 @@ void make_dir(char* dir, bool l, char* path, unsigned long IPaddr, int PN)
 		printf("%s\n",err_msg_string);
 	}
     	else
+	{
 		parse_msg_post_folder_response(resp_msg);
+		printf("Remote directory '%s' created at path: %s\n", dir, path);
+	}
 	free(err_msg_string);
 	free(msg);
 	free(resp->message);
 	free(resp);
-    	
-	printf("Remote directory '%s' created at path: %s\n", dir, path);
   }
 }
 
@@ -710,6 +724,8 @@ int main(int argc, char *argv[])
   PN = atoi(argv[2]);
   printf("IPaddress: %lu\n",IPaddr);
   printf("PN: %d\n", PN);
+  socket_send_create(PN);
+  socket_receive_create(CLIENT_PORT);
   command = (char *) malloc(sizeof(char)*MAX_LENGTH);
   input = (char *) malloc(sizeof(char)*MAX_LENGTH);
   local_path = (char *) malloc(1024);
@@ -717,7 +733,7 @@ int main(int argc, char *argv[])
   memset(local_path,0, MAX_LENGTH);
   memset(remote_path,0, MAX_LENGTH);
   /* strcpy(local_path,"/local"); */
-  strcpy(remote_path,"/home/charmi/Desktop/123");
+  strcpy(remote_path,"/");
  if (getcwd(local_path, 1024) != NULL)
     printf("\nlocal_path: %s\n", local_path);
   else
