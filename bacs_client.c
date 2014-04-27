@@ -173,7 +173,11 @@ void make_dir(char* dir, bool l, char* path, unsigned long IPaddr, int PN)
 	uint64_t msg_len;
 	ErrorCode error;
 	struct Node* resp;
-	create_msg_post_folder_request(dir, &msg, &msg_len);
+	char dirpath[1024];
+    	strcpy(dirpath,path);
+    	strcat(dirpath,"/");
+    	strcat(dirpath,dir);
+	create_msg_post_folder_request(dirpath, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 			printf("error in send");
@@ -287,7 +291,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
         strcat(filepath,dp->d_name);
     	printf("...Uploading file '%s'...\n", filepath);
 	stat(filepath, &st);
-    	create_msg_post_file_request(file_name, size, &msg, &msg_len);
+    	create_msg_post_file_request(dp->d_name, size, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send");
@@ -567,9 +571,55 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 	{
 		if(f==0)
 		{
+			char* msg = 0, * resp_msg = 0, *err_msg_string = 0;
+			uint64_t msg_len;
+			ErrorCode error;
+			struct Node* resp;
+			create_msg_delete_file_request(file_name, &msg, &msg_len);
+			error = mysend(msg, IPaddr, PN, msg_len);
+			if(error == FAILURE || error == RETRY)
+				printf("error in send");
+			resp = myrecv(PN);
+			resp_msg = resp->message;
+			if(get_header_type(resp_msg) == BACS_ERROR)
+			{
+      				parse_msg_error(resp_msg, &err_msg_string);
+				printf("%s",err_msg_string);
+			}
+    			else
+				parse_msg_delete_file_response(resp_msg);
+			free(err_msg_string);
+			free(msg);
+			free(resp->message);
+			free(resp);
+    	
+			printf("Deleted remote file '%s'\n", file_name);
 		}
 		else
 		{
+			char* msg = 0, * resp_msg = 0, *err_msg_string = 0;
+			uint64_t msg_len;
+			ErrorCode error;
+			struct Node* resp;
+			create_msg_delete_folder_request(file_name, &msg, &msg_len);
+			error = mysend(msg, IPaddr, PN, msg_len);
+			if(error == FAILURE || error == RETRY)
+				printf("error in send");
+			resp = myrecv(PN);
+			resp_msg = resp->message;
+			if(get_header_type(resp_msg) == BACS_ERROR)
+			{
+      				parse_msg_error(resp_msg, &err_msg_string);
+				printf("%s",err_msg_string);
+			}
+    			else
+				parse_msg_delete_folder_response(resp_msg);
+			free(err_msg_string);
+			free(msg);
+			free(resp->message);
+			free(resp);
+    	
+			printf("Deleted remote folder '%s'\n", file_name);
 		}
 	}
 }
