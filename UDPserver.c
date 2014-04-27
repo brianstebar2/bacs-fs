@@ -16,7 +16,7 @@
     exit(1);
 }*/
 /*create_new_node(head,recv_message.seq_number, cli_addr.sin_addr, recv_message.port_number,recv_message.size_of_blocks)*/
-void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, int n){
+void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, int n,int total_blocks){
 	struct Node* node = malloc(sizeof(struct Node)) ;
 	node->next = NULL;
 	if(prev_node == NULL) 
@@ -28,7 +28,7 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 	node->IP = IP;
 	node->PN = PN;
 	node->size_of_blocks=n;
-	node->counter = n;
+	node->counter = total_blocks;
 	return;
 }
 
@@ -40,7 +40,8 @@ void delete_node(struct Node* remove_current_node_from_list){
 }
 
 struct Node* myrecv(int PN)
-{
+{	
+	
 	struct sockaddr_in my_addr, cli_addr;
 	struct Send_message recv_message;
 	int sockfd, i, x; 
@@ -106,7 +107,8 @@ struct Node* myrecv(int PN)
 		printf("seq number = 0\n");
 			if(head == NULL){
 			printf("head is null\n");
-					create_new_node(head,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks);
+					int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
+					create_new_node(head,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks,total_blocks);
 				}
 			else{
 			printf("head not null\n");
@@ -121,9 +123,9 @@ struct Node* myrecv(int PN)
 		
 			
 		else{
-			
+			printf("\n\n");
 			Itr = head;
-			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr->next==NULL)){
+			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr->next!=NULL)){
 				Itr = Itr->next;
 			}
 			temp = malloc(sizeof(char)*recv_message.size_of_blocks);
