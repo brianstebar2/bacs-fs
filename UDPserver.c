@@ -107,12 +107,13 @@ struct Node* myrecv(int PN)
 				}
 			else{
 			printf("head not null\n");
-			    while(Itr!=NULL){
+			    while(Itr->next!=NULL){
 			    		
 					Itr = Itr->next;
 					}
-			    }
+			    
 			    create_new_node(Itr,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks);
+			}
 		}
 		
 			
