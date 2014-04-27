@@ -25,6 +25,7 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 		prev_node->next = node;
 	node->previous = prev_node;
 	node->message = malloc(sizeof(char)*n);
+	memset(node->message, 0, sizeof(char)*n);
 	node->IP = IP;
 	node->PN = PN;
 	node->size_of_blocks=n;
@@ -42,17 +43,15 @@ void delete_node(struct Node* remove_current_node_from_list){
 struct Node* myrecv(int PN)
 {	
 	
-	struct sockaddr_in my_addr, cli_addr;
+	struct sockaddr_in my_addr;
 	struct Send_message recv_message;
-	int sockfd, i, x; 
-	socklen_t slen=sizeof(cli_addr);
+	int sockfd; 
+	int slen=sizeof(my_addr);
+	//socklen_t slen=sizeof(my_addr);
 	char ackbuf[BUFLEN];
-	char* final_string = "\0" ;
-	int num_of_messages;
 	struct Node* Itr = head;
-	int check = 0;
 	/*For copying and concatenating a string block*/
-	char *temp;
+	/*char *temp;*/
 			
 	
 	printf("Inside myrecv\n");
@@ -60,7 +59,7 @@ struct Node* myrecv(int PN)
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 	{
 		printf("Error: Socket Not Created\n");
-		return; /* (void*)FAILURE; */
+		return 0; /* (void*)FAILURE; */
 	}	
 	
 	bzero(&my_addr, sizeof(my_addr));
@@ -71,25 +70,27 @@ struct Node* myrecv(int PN)
 	}
 	else*/
 		my_addr.sin_port = PN;
-	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	printf("Port: %d\n",PN);
+	//my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (bind(sockfd, (struct sockaddr* ) &my_addr, sizeof(my_addr))==-1)		
 	{	
 		printf("Error: Bind Failure\n");
-		return; /* (void*)FAILURE; */
+		return 0; /* (void*)FAILURE; */
 	}	
 	/*memset(voidbuf, 0, sizeof(voidbuf));*/
-	
 	while(1){
 		printf("\n");
-		check = 0;
 		memset((void*)&recv_message,0,sizeof(recv_message));
-		if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&cli_addr, &slen)==-1)
+		if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&my_addr, &slen)==-1)
 		{	    	
 			printf("Error: Recvfrom Failure\n");
-			return;/* (void*)FAILURE; */
+			return 0;/* (void*)FAILURE; */
 		}
-		printf("Message received!\n");
+		
+		printf("Message received: ");
+		
+		print_msg(recv_message.message);
 		printf("\n\n");
 		/*printf("Number of Blocks to be received %d\n", recv_message.seq_number);*/
 	
@@ -97,27 +98,27 @@ struct Node* myrecv(int PN)
 		memset(ackbuf, 0, sizeof(ackbuf));
 		strcpy(ackbuf,"ACK");	
 		
-		if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&cli_addr, slen)==-1)
+		if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&my_addr, slen)==-1)
 		{
 			printf("Error: Sendto Failure\n");
-			return;/* (void*)FAILURE; */
+			return 0;/* (void*)FAILURE; */
 		}
 		printf("ACK SENT\n");
 		if(recv_message.seq_number==0){
 		printf("seq number = 0\n");
 			if(head == NULL){
-			printf("head is null\n");
-					int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
-					create_new_node(head,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks,total_blocks);
+				int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
+				printf("head is null\n");
+				create_new_node(head,recv_message.seq_number, my_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks,total_blocks);
 				}
 			else{
+			int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
 			printf("head not null\n");
-			    while(Itr->next!=NULL){
-			    		
-					Itr = Itr->next;
-					}
-			    int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
-			    create_new_node(Itr,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks,total_blocks);
+			while(Itr->next!=NULL){  		
+				Itr = Itr->next;
+			}
+			    
+			    create_new_node(Itr,recv_message.seq_number, my_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks,total_blocks);
 			}
 		}
 		
@@ -125,18 +126,26 @@ struct Node* myrecv(int PN)
 		else{
 			printf("\n\n");
 			Itr = head;
-			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr->next!=NULL)){
+			while((Itr->IP != my_addr.sin_addr.s_addr)&&(Itr->next!=NULL)){
 				Itr = Itr->next;
 			}
-			temp = malloc(sizeof(char)*recv_message.size_of_blocks);
-			/*Concatenate string blocks*/
-			strcpy(temp,recv_message.message);
-			strcat(Itr->message,temp);
-			free(temp);
+			//char *temp;
+			//temp = malloc(sizeof(char)*recv_message.size_of_blocks);
+			printf("recv msg: ");
+			print_msg(recv_message.message);
+			memcpy(Itr->message, recv_message.message, sizeof(char)*recv_message.size_of_blocks);
+			//strcpy(temp,recv_message.message);
+			//printf("temp: ");
+			//print_msg(temp);
+			//strcat(Itr->message,temp);
+			//free(temp);
+			//strcat(Itr->message,recv_message.message);
+			printf("itr msg: ");
+			print_msg(Itr->message);
 			Itr->counter--;
 			if(Itr->counter == 0){
-				printf("About to send string: \n");
-				printf(Itr->message);
+				printf("About to send string: ");
+				print_msg(Itr->message);
 				close(sockfd);
 				delete_node(Itr);
 				return Itr;	
@@ -148,23 +157,14 @@ struct Node* myrecv(int PN)
 	}
 	
 	/*
-		recv_message.hostIP = my_addr.sin_addr;		/*Populate the struct with the IP address/
-		recv_message.port_number = my_addr.sin_port;	/*Populate the struct with the port/
+		recv_message.hostIP = my_addr.sin_addr;		
+		recv_message.port_number = my_addr.sin_port;	
 		printf("Server Port : %d\n ",recv_message.port_number);	*/
 		
 }
 
 
-
-
-
-
-
-
-
-
-
-/*/*
+/*
 		we dont need number of messages now for the moment cos we will have an infinite loop till one buffer fills
 		
 		num_of_messages = atoi(recv_message.message);
@@ -174,12 +174,11 @@ struct Node* myrecv(int PN)
 		{ 
 		  
 		while(check!=0){
-			/*This loop runs till all the packets to a particular message are received/
+			
 			if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 			{	    	
 				printf("Error: Recvfrom Failure\n");
-				return;/* (void*)FAILURE; */
+				return;
 			//printf("Block Sequence Number Recd %d\n", recv_message.seq_number);
 		
 			//printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), recv_message.message);*/
-
