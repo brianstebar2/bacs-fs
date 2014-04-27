@@ -24,7 +24,7 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 	if(prev_node!=NULL)
 		prev_node->next = node;
 	node->previous = prev_node;
-	node->message = malloc(sizeof(char)*node->n);
+	node->message = malloc(sizeof(char)*n);
 	node->IP = IP;
 	node->PN = PN;
 	node->size_of_blocks=n;
