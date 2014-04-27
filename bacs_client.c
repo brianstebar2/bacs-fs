@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
   else
     perror("getcwd() error");
 /*strcpy(local_path,"/home/charmi/Desktop/123");*/
-printf("\nlocal_path: %s\n", local_path);
+/*printf("\nlocal_path: %s\n", local_path);*/
   printf("remote_path: %s\n", remote_path);
 
   while(1)
