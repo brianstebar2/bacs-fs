@@ -5,16 +5,15 @@
 #include "messages.h"
 #include "send_file.h"
 
-void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids)
+void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids, int PN)
 {
 	FILE *fp = fopen(path,"r");
 	char block[DEFAULT_BLOCK_SIZE];
 	int i=0;
-	int PN = 9930;
 	fseek(fp,0,SEEK_SET);
 	while(!feof(fp))
 	{
-		char *msg = 0;
+		char *msg = 0, *err_msg_string = 0;
 		uint64_t msg_len;
 		uuid_t uuid;
 		/*uint32_t size;*/
@@ -41,15 +40,20 @@ void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids)
 		
 		/* Wait for server response */
 		/* myrecv(..., resp_msg); */
-		resp = myrecv(PN);
+		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
-		parse_msg_post_block_response(resp_msg, &uuid);
-		if(get_header_resource(resp_msg) != BACS_FILE || 
-     	   	   get_header_action(resp_msg) != POST ||
-     	           get_header_type(resp_msg) != BACS_RESPONSE)
-    			die_with_error("send_file - invalid message header");
+		if(get_header_type(resp_msg) == BACS_ERROR)
+		{
+      			parse_msg_error(resp_msg, &err_msg_string);
+			printf("%s\n",err_msg_string);
+		}
+    		else
+			parse_msg_post_block_response(resp_msg, &uuid);
+		
 		i++;
-		free(resp_msg);
+		free(err_msg_string);
+		free(resp->message);
+		free(resp);
 		free(msg);
 		free(content);
 	}
