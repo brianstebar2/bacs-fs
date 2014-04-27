@@ -193,7 +193,7 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 			printf("error in send\n");
 		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
-		if(get_header_type(resp_msg) == BACS_ERROR)
+    if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);

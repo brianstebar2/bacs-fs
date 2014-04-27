@@ -720,9 +720,12 @@ void start_listening(int port)
   /* Handle incoming messages */
   while((request_node = myrecv(port))) {
     /* Extract the message from the Node structure */
-    fprintf(stderr, "Parsing received message...\n");
+    printf("Parsing received message...\n");
     long resp_ip = request_node->IP;
-    msg = request_node->message;
+    msg = request_node->message; 
+    printf("Recevied request: ");
+    print_msg(msg);
+    printf("\n");
 
     /* Handle the request */
     switch(get_header_type(msg)) {
