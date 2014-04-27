@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "common.h"
 
 
 bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
@@ -33,16 +34,46 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 	{
   		char dirpath[1024];
   		int result;
-
-		strcpy(dirpath,path);
-  		strcat(dirpath,"/");
-  		strcat(dirpath,dir);
-  		/*printf("dirpath:%s\n",dirpath);*/
+		memset(dirpath, 0, 1024);
+		if(strcmp(path,"/")==0 && strcmp(dir,"..")==0)
+			strcpy(dirpath,path);
+		else if((strcmp(dir,"..")!=0))
+		{
+			strcpy(dirpath,path);
+  			strcat(dirpath,"/");
+  			strcat(dirpath,dir);
+		}
+		else if(strcmp(path,"/")!=0)
+		{
+    			char** tokens;
+    			tokens = str_split(path, '/');
+			if (tokens)
+    			{
+        			int i;
+        			for (i = 0; *(tokens + i); i++);
+				if(i!=1)
+				{
+					int j;
+					for (j = 0; j<i-1; j++)
+        				{
+						strcat(dirpath,"/");
+						strcat(dirpath,*(tokens + j));
+            					free(*(tokens + j));
+        				}
+				}
+				else
+					strcpy(dirpath,"/");
+        			free(tokens);
+			}
+		}
+		else
+			strcpy(dirpath,"/");
+  		printf("dirpath:%s\n",dirpath);
   		result = chdir(dirpath);
   		if(result==0)
   		{
-    			strcat(path,"/");
-    			strcat(path,dir);
+    			memset(path, 0, 1024);
+			strcpy(path, dirpath);
     			printf("Changed to directory '%s'\n", path);
   		}
   		else 
@@ -62,10 +93,41 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		ErrorCode error;
 		char* resp_msg =0, *err_msg_string = 0;
 		struct Node* resp;
-  		strcpy(dirpath,path);
-  		strcat(dirpath,"/");
-  		strcat(dirpath,dir);
-  		/*printf("dirpath:%s\n",dirpath);*/		
+  		memset(dirpath, 0, 1024);
+		if(strcmp(path,"/")==0 && strcmp(dir,"..")==0)
+			strcmp(dirpath, path);
+		else if(strcmp(dir,"..")!=0)
+		{
+			strcpy(dirpath,path);
+  			strcat(dirpath,"/");
+  			strcat(dirpath,dir);
+		}
+		else if(strcmp(path,"/")!=0)
+		{
+    			char** tokens;
+    			tokens = str_split(path, '/');
+			if (tokens)
+    			{
+        			int i;
+        			for (i = 0; *(tokens + i); i++);
+				if(i!=1)
+				{
+					int j;
+					for (j = 0; j<i-1; j++)
+        				{
+						strcat(dirpath,"/");
+						strcat(dirpath,*(tokens + j));
+            					free(*(tokens + j));
+        				}
+				}
+				else
+					strcpy(dirpath,"/");
+        			free(tokens);
+			}
+		}
+		else
+			strcpy(dirpath,"/");
+  		printf("dirpath:%s\n",dirpath);		
 		create_msg_get_folder_meta_request(dirpath, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
@@ -90,8 +152,8 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		free(resp->message);
 		free(resp);
 		free(basic_metas);
-		strcat(path,"/");
-    		strcat(path,dir);
+		memset(path, 0, 1024);
+		strcpy(path, dirpath);
     		printf("Changed to directory '%s'\n", path);
 	}
   return 0;
@@ -653,7 +715,7 @@ int main(int argc, char *argv[])
   memset(local_path,0, MAX_LENGTH);
   memset(remote_path,0, MAX_LENGTH);
   /* strcpy(local_path,"/local"); */
-  strcpy(remote_path,"/remote");
+  strcpy(remote_path,"/");
  if (getcwd(local_path, 1024) != NULL)
     printf("\nlocal_path: %s\n", local_path);
   else
