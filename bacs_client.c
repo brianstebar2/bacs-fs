@@ -186,6 +186,8 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 		ErrorCode error;
 		struct Node* resp;
 		create_msg_get_folder_meta_request(path, &msg, &msg_len);
+		printf("Client sends: ");
+		print_msg(msg);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
@@ -715,14 +717,14 @@ int main(int argc, char *argv[])
   memset(local_path,0, MAX_LENGTH);
   memset(remote_path,0, MAX_LENGTH);
   /* strcpy(local_path,"/local"); */
-  strcpy(remote_path,"/");
+  strcpy(remote_path,"/home/charmi/Desktop/123");
  if (getcwd(local_path, 1024) != NULL)
     printf("\nlocal_path: %s\n", local_path);
   else
     perror("getcwd() error");
 /*strcpy(local_path,"/home/charmi/Desktop/123");*/
 /*printf("\nlocal_path: %s\n", local_path);*/
-  printf("remote_path: %s\n", remote_path);
+  printf("remote_path: '%s'\n", remote_path);
 
   while(1)
   {
