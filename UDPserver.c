@@ -24,7 +24,7 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 	if(prev_node!=NULL)
 		prev_node->next = node;
 	node->previous = prev_node;
-	node->message = malloc(sizeof(char)*node->size_of_blocks);
+	node->message = malloc(sizeof(char)*node->n);
 	node->IP = IP;
 	node->PN = PN;
 	node->size_of_blocks=n;
@@ -126,7 +126,7 @@ struct Node* myrecv(int PN)
 			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr->next==NULL)){
 				Itr = Itr->next;
 			}
-			temp = malloc(sizeof(char)*size_of_blocks);
+			temp = malloc(sizeof(char)*recv_message.size_of_blocks);
 			/*Concatenate string blocks*/
 			strcpy(temp,recv_message.message);
 			strcat(Itr->message,temp);
