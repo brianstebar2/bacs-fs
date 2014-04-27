@@ -95,7 +95,7 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		struct Node* resp;
   		memset(dirpath, 0, 1024);
 		if(strcmp(path,"/")==0 && strcmp(dir,"..")==0)
-			strcmp(dirpath, path);
+			strcpy(dirpath, path);
 		else if(strcmp(dir,"..")!=0)
 		{
 			strcpy(dirpath,path);
