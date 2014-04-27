@@ -69,13 +69,13 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		create_msg_get_folder_meta_request(dirpath, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
-			printf("error in send");
+			printf("error in send\n");
 		resp = myrecv(PN);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s",err_msg_string);
+			printf("%s\n",err_msg_string);
 		}
     		else
 			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
@@ -126,13 +126,13 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 		create_msg_get_folder_meta_request(path, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
-			printf("error in send");
+			printf("error in send\n");
 		resp = myrecv(PN);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s",err_msg_string);
+			printf("%s\n",err_msg_string);
 		}
     		else
 			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
@@ -180,13 +180,13 @@ void make_dir(char* dir, bool l, char* path, unsigned long IPaddr, int PN)
 	create_msg_post_folder_request(dirpath, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
-			printf("error in send");
+			printf("error in send\n");
 	resp = myrecv(PN);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
       		parse_msg_error(resp_msg, &err_msg_string);
-		printf("%s",err_msg_string);
+		printf("%s\n",err_msg_string);
 	}
     	else
 		parse_msg_post_folder_response(resp_msg);
@@ -232,13 +232,13 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
 	/*mysend(msg, ...) */
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send");
+		printf("error in send\n");
 	resp = myrecv(PN);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
       		parse_msg_error(resp_msg, &err_msg_string);
-		printf("%s",err_msg_string);
+		printf("%s\n",err_msg_string);
 	}
     	else
   /* Wait for response */
@@ -294,7 +294,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
     	create_msg_post_file_request(dp->d_name, size, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send");
+		printf("error in send\n");
 	resp = myrecv(PN);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
@@ -352,13 +352,13 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 	create_msg_get_file_request(remote_file, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send");
+		printf("error in send\n");
 	resp = myrecv(PN);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
       		parse_msg_error(resp_msg, &err_msg_string);
-		printf("%s",err_msg_string);
+		printf("%s\n",err_msg_string);
 	}
     	else
 		parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
@@ -377,13 +377,13 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 		create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
-			printf("error in send");
+			printf("error in send\n");
 		resp = myrecv(PN);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s",err_msg_string);
+			printf("%s\n",err_msg_string);
 		}
     		else
 			parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
@@ -421,7 +421,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 	create_msg_get_folder_meta_request(remote_temp, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send");
+		printf("error in send\n");
 	resp = myrecv(PN);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
@@ -459,13 +459,13 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 		create_msg_get_file_request(remote_file, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
-			printf("error in send");
+			printf("error in send\n");
 		resp = myrecv(PN);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s",err_msg_string);
+			printf("%s\n",err_msg_string);
 		}
     		else
 			parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
@@ -484,13 +484,13 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 			create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
-				printf("error in send");
+				printf("error in send\n");
 			resp = myrecv(PN);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
       				parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s",err_msg_string);
+			printf("%s\n",err_msg_string);
 			}
     			else			
 				parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
@@ -560,7 +560,7 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
   				if(chdir(local_temp)!=0)
   					perror("cd() error");
 				if(remove(file_name)==0)
-					printf("Folder successfully deleted");
+					printf("Folder successfully deleted\n");
 				else
 					perror("delete() error");
             		}
@@ -569,22 +569,26 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 	}
 	else
 	{
+		char filepath[1024];
+		strcpy(filepath, path);
+		strcat(filepath, "/");
+		strcat(filepath, file_name);
 		if(f==0)
 		{
 			char* msg = 0, * resp_msg = 0, *err_msg_string = 0;
 			uint64_t msg_len;
 			ErrorCode error;
 			struct Node* resp;
-			create_msg_delete_file_request(file_name, &msg, &msg_len);
+			create_msg_delete_file_request(filepath, &msg, &msg_len);
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
-				printf("error in send");
+				printf("error in send\n");
 			resp = myrecv(PN);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
       				parse_msg_error(resp_msg, &err_msg_string);
-				printf("%s",err_msg_string);
+				printf("%s\n",err_msg_string);
 			}
     			else
 				parse_msg_delete_file_response(resp_msg);
@@ -601,16 +605,16 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 			uint64_t msg_len;
 			ErrorCode error;
 			struct Node* resp;
-			create_msg_delete_folder_request(file_name, &msg, &msg_len);
+			create_msg_delete_folder_request(filepath, &msg, &msg_len);
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
-				printf("error in send");
+				printf("error in send\n");
 			resp = myrecv(PN);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
       				parse_msg_error(resp_msg, &err_msg_string);
-				printf("%s",err_msg_string);
+				printf("%s\n",err_msg_string);
 			}
     			else
 				parse_msg_delete_folder_response(resp_msg);
@@ -629,17 +633,19 @@ int main(int argc, char *argv[])
   FILE *fp;
   int MAX_LENGTH, i, index, j;
   char *command, *input, *local_path, *remote_path;
-	int PN = 9930;
+  int PN = 0;
   struct in_addr IP;
 	unsigned long IPaddr = 0;
-	MAX_LENGTH=20;
+  MAX_LENGTH=20;
   if (inet_aton(argv[1], &IP)==0)
   {
    	printf("Unable to convert IPaddr to int\n");
   }
   else
 	IPaddr = IP.s_addr;
-  printf("IPaddress: %lu",IPaddr);
+  PN = atoi(argv[2]);
+  printf("IPaddress: %lu\n",IPaddr);
+  printf("PN: %d\n", PN);
   command = (char *) malloc(sizeof(char)*MAX_LENGTH);
   input = (char *) malloc(sizeof(char)*MAX_LENGTH);
   local_path = (char *) malloc(1024);
@@ -684,7 +690,7 @@ printf("\nlocal_path: %s\n", local_path);
       fread(string, fsize, 1, fp);
       fclose(fp);
       string[fsize] = 0;
-      printf("%s",string);
+      printf("%s\n",string);
 	free(string);
     }
     else if(strcmp(command,"upload")==0)
@@ -710,12 +716,12 @@ printf("\nlocal_path: %s\n", local_path);
         }
         else
         {
-          printf("%s", "Syntax error.");
+          printf("%s\n", "Syntax error.");
         }
       }
       else
       {
-        printf("%s", "Syntax error.");
+        printf("%s\n", "Syntax error.");
       }
     }
     else if(strcmp(command,"download")==0)
@@ -741,12 +747,12 @@ printf("\nlocal_path: %s\n", local_path);
         }
         else
         {
-          printf("%s", "Syntax error.");
+          printf("%s\n", "Syntax error.");
         }
       }
       else
       {
-        printf("%s", "Syntax error.");
+        printf("%s\n", "Syntax error.");
       }
     }
     else if(strcmp(command,"mkdir")==0)
@@ -772,12 +778,12 @@ printf("\nlocal_path: %s\n", local_path);
         }
         else
         {
-          printf("%s", "Syntax error.");
+          printf("%s\n", "Syntax error.");
         }
       }
       else
       {
-        printf("%s", "Syntax error.");
+        printf("%s\n", "Syntax error.");
       }
     }
     else if(strcmp(command,"cd")==0)
@@ -803,12 +809,12 @@ printf("\nlocal_path: %s\n", local_path);
         }
         else
         {
-          printf("%s", "Syntax error.");
+          printf("%s\n", "Syntax error.");
         }
       }
       else
       {
-        printf("%s", "Syntax error.");
+        printf("%s\n", "Syntax error.");
       }
     }
     else if(strcmp(command,"ls")==0)
@@ -834,12 +840,12 @@ printf("\nlocal_path: %s\n", local_path);
         }
         else
         {
-          printf("%s", "Syntax error.");
+          printf("%s\n", "Syntax error.");
         }
       }
       else
       {
-        printf("%s", "Syntax error.");
+        printf("%s\n", "Syntax error.");
       }
     }
     	else if(strcmp(command,"delete")==0)
@@ -868,10 +874,10 @@ printf("\nlocal_path: %s\n", local_path);
 						free(string);
 		    			}
 		    			else
-        	                 		printf("%s", "Syntax error.");
+        	                 		printf("%s\n", "Syntax error.");
         	    		}
 				else
-					printf("%s", "Syntax error.");
+					printf("%s\n", "Syntax error.");
         		}
         		else if(input[j+1]=='r')
         		{
@@ -894,16 +900,16 @@ printf("\nlocal_path: %s\n", local_path);
 						free(string);
 		    			}
 		    			else
-        	      				printf("%s", "Syntax error.");
+        	      				printf("%s\n", "Syntax error.");
         	    		}
         			else
-        	  			printf("%s", "Syntax error.");
+        	  			printf("%s\n", "Syntax error.");
 			}
 			else
-				printf("%s", "Syntax error.");
+				printf("%s\n", "Syntax error.");
         	}
       		else
-      		        printf("%s", "Syntax error.");
+      		        printf("%s\n", "Syntax error.");
 	}
     else if(strcmp(command,"exit")==0)
     {
