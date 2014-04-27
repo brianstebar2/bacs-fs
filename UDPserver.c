@@ -77,8 +77,9 @@ struct Node* myrecv(int PN)
 	/*memset(voidbuf, 0, sizeof(voidbuf));*/
 	
 	while(1){
-	
+		printf("\n");
 		check = 0;
+		memset(recv_message,0);
 		if (recvfrom(sockfd, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&cli_addr, &slen)==-1)
 		{	    	
 			printf("Error: Recvfrom Failure\n");
@@ -135,6 +136,7 @@ struct Node* myrecv(int PN)
 			}
 			
 		}
+		
 		
 	}
 	
