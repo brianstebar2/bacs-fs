@@ -30,7 +30,6 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 
 void delete_node(struct Node* remove_current_node_from_list){
 	remove_current_node_from_list->previous = remove_current_node_from_list->next; 
-	free(remove_current_node_from_list);	
 }
 
 struct Node* myrecv(int PN)
