@@ -12,6 +12,6 @@
 
 #include "definitions.h"
 
-struct Node* myrecv(void);
+struct Node* myrecv(int PN);
 
 #endif /* UDPSERVER_H */
