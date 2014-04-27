@@ -35,7 +35,6 @@
 #define BACS_RESPONSE 2
 #define BACS_ERROR 3
 
-
 /* Message header size 
  *  - byte 0: Message action
  *  - byte 1: Message resource

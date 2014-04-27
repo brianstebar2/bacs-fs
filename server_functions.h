@@ -13,10 +13,11 @@
 
 #include "definitions.h"
 
+/* Server configuration */
 
 
 /* Server message router */
-void start_listening();
+void start_listening(int port);
 
 /* Server logic functions */
 void handle_delete_file(char *msg, char **response, uint64_t *response_len);
