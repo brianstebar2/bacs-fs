@@ -19,6 +19,7 @@
 void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, int n){
 	struct Node* node = malloc(sizeof(struct Node)) ;
 	node->next = NULL;
+	printf("New node created \n");
 	prev_node->next = node;
 	node->previous = prev_node;
 	node->IP = IP;
@@ -47,7 +48,7 @@ struct Node* myrecv(int PN)
 	char *temp;
 			
 	
-	
+	printf("Inside myrecv\n");
 	
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 	{
@@ -80,12 +81,14 @@ struct Node* myrecv(int PN)
 			printf("Error: Recvfrom Failure\n");
 			return;/* (void*)FAILURE; */
 		}
-		
+		printf("Message received!\n");
+		printf("\n\n");
 		/*printf("Number of Blocks to be received %d\n", recv_message.seq_number);*/
 	
 		/*printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), voidbuf);*/
 		memset(ackbuf, 0, sizeof(ackbuf));
-		strcpy(ackbuf,"ACK");		
+		strcpy(ackbuf,"ACK");	
+		printf("ACK SENT\n");
 		if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&cli_addr, slen)==-1)
 		{
 			printf("Error: Sendto Failure\n");
@@ -117,6 +120,8 @@ struct Node* myrecv(int PN)
 			strcat(Itr->message,temp);
 			Itr->counter--;
 			if(Itr->counter == 0){
+				printf("About to send string: \n");
+				printf(Itr->message);
 				close(sockfd);
 				delete_node(Itr);
 				return Itr;	
