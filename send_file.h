@@ -9,7 +9,7 @@
 
 #define SIZE 1024
 
-void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids);
+void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids);
 
 
 #endif /* SEND_FILE_H */
