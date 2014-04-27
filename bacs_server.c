@@ -45,7 +45,7 @@ int main(int argc, char **argv)
   }
 
   /* Set default port number if necessary */
-  if(port == 0) port = PORT;
+  if(port == 0) port = SERVER_PORT;
 
   /* Initialize the file metadata tree */
   create_meta_t(&fs_metadata);
