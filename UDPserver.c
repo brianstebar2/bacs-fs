@@ -61,8 +61,8 @@ struct Node* myrecv(int PN)
 	/*
 	if(PN==NULL){
 		my_addr.sin_port = htons(PORT);
-	}*/
-	else
+	}
+	else*/
 		my_addr.sin_port = PN;
 	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
