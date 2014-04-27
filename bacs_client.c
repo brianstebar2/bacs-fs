@@ -70,7 +70,7 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
-		resp = myrecv(PN);
+		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
@@ -127,7 +127,7 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
-		resp = myrecv(PN);
+		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
@@ -181,7 +181,7 @@ void make_dir(char* dir, bool l, char* path, unsigned long IPaddr, int PN)
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
-	resp = myrecv(PN);
+	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
@@ -233,7 +233,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send\n");
-	resp = myrecv(PN);
+	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
@@ -295,7 +295,7 @@ void upload(char* file_name, bool f, char* local_path, char* remote_path, unsign
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send\n");
-	resp = myrecv(PN);
+	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
@@ -353,7 +353,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send\n");
-	resp = myrecv(PN);
+	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
@@ -378,7 +378,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
-		resp = myrecv(PN);
+		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
@@ -422,7 +422,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send\n");
-	resp = myrecv(PN);
+	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
@@ -460,7 +460,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 		error = mysend(msg, IPaddr, PN, msg_len);
 		if(error == FAILURE || error == RETRY)
 			printf("error in send\n");
-		resp = myrecv(PN);
+		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
@@ -485,7 +485,7 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
 				printf("error in send\n");
-			resp = myrecv(PN);
+			resp = myrecv(CLIENT_PORT);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
@@ -583,7 +583,7 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
 				printf("error in send\n");
-			resp = myrecv(PN);
+			resp = myrecv(CLIENT_PORT);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
@@ -609,7 +609,7 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
 				printf("error in send\n");
-			resp = myrecv(PN);
+			resp = myrecv(CLIENT_PORT);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
