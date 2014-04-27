@@ -12,6 +12,6 @@
 
 #include "definitions.h"
 
-ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks);
+ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks);
 
 #endif /* UDPCLIENT_H */
