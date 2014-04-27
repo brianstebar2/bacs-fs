@@ -770,7 +770,7 @@ void start_listening(int port)
 
     /* Send response if necessary */
     if(resp_len > 0) {
-      mysend(resp, resp_ip, PORT, resp_len);
+      mysend(resp, resp_ip, CLIENT_PORT, resp_len);
       print_msg(resp);
     }
 
