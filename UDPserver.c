@@ -20,8 +20,11 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 	struct Node* node = malloc(sizeof(struct Node)) ;
 	node->next = NULL;
 	prev_node->next = node;
+	if(prev_node == NULL) 
+		head = node;
+	if(prev_node!=NULL)
+		node->previous = prev_node;
 	
-	node->previous = prev_node;
 	node->IP = IP;
 	node->PN = PN;
 	node->size_of_blocks=n;
@@ -120,7 +123,7 @@ struct Node* myrecv(int PN)
 		else{
 			
 			Itr = head;
-			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr!=NULL)){
+			while((Itr->IP != cli_addr.sin_addr.s_addr)&&(Itr->next=NULL)){
 				Itr = Itr->next;
 			}
 			temp = NULL;
