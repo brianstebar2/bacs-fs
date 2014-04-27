@@ -45,7 +45,8 @@
 /* Network stack constants */
 #define BUFLEN 1500
 #define MESSAGE_LEN 1496
-#define PORT 9930
+#define CLIENT_PORT 9930
+#define SERVER_PORT 9931
 typedef enum {SUCCESS, FAILURE , RETRY} ErrorCode;
 
 
