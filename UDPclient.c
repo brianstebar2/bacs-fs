@@ -12,6 +12,7 @@
 #include <sys/time.h>
 #include "UDPclient.h"
 #include "math.h"
+#include "messages.h"
 
 
 
@@ -21,18 +22,18 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 	struct Send_message send_message;
 
 	int total_blocks = ceil((float)size_of_blocks/BUFLEN);
-	send_message.size_of_blocks = size_of_blocks;
 	struct sockaddr_in serv_addr;
 	int sockfd, i, slen=sizeof(serv_addr);
 	
 	char rcvbuf[BUFLEN];
-	
+	struct timeval timeout;
 	char* rp = p;
-	
+	send_message.size_of_blocks = size_of_blocks;
+	print_msg(rp);
 
 	/*Timer variables*/
-	struct timeval timeout;
-	timeout.tv_sec = 5;
+	
+	timeout.tv_sec = 15;
 	timeout.tv_usec = 0;
 
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
@@ -46,6 +47,7 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 	serv_addr.sin_family = AF_INET;
 	
 	serv_addr.sin_port = PN;
+	printf("Port: %d\n",PN);
 	/*
 	serv_addr.sin_port = htons(PORT);
 	
@@ -75,6 +77,9 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 		else
 		{
 			memcpy(send_message.message, rp, MESSAGE_LEN);
+			printf("Message to send: ");
+			print_msg(send_message.message);
+			
 			rp += MESSAGE_LEN;
 		}
 
@@ -84,7 +89,10 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 			return FAILURE;
 		}
 		else
-			printf("sent: %s\n", send_message.message);
+		{
+			printf("sent: ");
+			print_msg(send_message.message);
+		}
 		
 		/*Configure a recieve timer*/
 		if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout,sizeof(timeout)) < 0)
@@ -94,6 +102,7 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 		/*Receive ACK from Server*/
 		if (recvfrom(sockfd, rcvbuf, BUFLEN, 0, (struct sockaddr*)&serv_addr, &slen)==-1)
 		{    
+			printf("No response received\n");
 			return RETRY;
 		}
 		else
