@@ -19,8 +19,8 @@
 void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, int n){
 	struct Node* node = malloc(sizeof(struct Node)) ;
 	node->next = NULL;
-	printf("New node created \n");
 	prev_node->next = node;
+	
 	node->previous = prev_node;
 	node->IP = IP;
 	node->PN = PN;
@@ -30,7 +30,10 @@ void create_new_node(struct Node* prev_node, int seq_number, long IP, int PN, in
 }
 
 void delete_node(struct Node* remove_current_node_from_list){
-	remove_current_node_from_list->previous = remove_current_node_from_list->next; 
+	if(remove_current_node_from_list->previous!=NULL)
+	remove_current_node_from_list->previous->next = remove_current_node_from_list->next;
+	if(remove_current_node_from_list->next!=NULL)
+	remove_current_node_from_list->next->previous = remove_current_node_from_list->previous;
 }
 
 struct Node* myrecv(int PN)
