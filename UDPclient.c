@@ -15,7 +15,7 @@
 
 
 
-ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
+ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks  )
 {
 
 	struct Send_message send_message;
@@ -44,15 +44,18 @@ ErrorCode mysend(void* p, char* IPaddr, int PN, int size_of_blocks  )
 
 	bzero(&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
+	
+	serv_addr.sin_port = PN;
+	/*
 	serv_addr.sin_port = htons(PORT);
-
+	
 
 	if (inet_aton(IPaddr, &serv_addr.sin_addr)==0)
 	{
 		return FAILURE;
 	}
 
-	
+	*/
 	
 	
 	/*The first packet contains the number of blocks as the message */
