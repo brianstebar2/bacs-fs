@@ -5,7 +5,7 @@
 #include "messages.h"
 #include "send_file.h"
 
-void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
+void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids)
 {
 	FILE *fp = fopen(path,"r");
 	char block[DEFAULT_BLOCK_SIZE];
@@ -41,7 +41,7 @@ void send_file(char *path, char *IPaddr, uuid_t *uuids, uint64_t num_uuids)
 		
 		/* Wait for server response */
 		/* myrecv(..., resp_msg); */
-		resp = myrecv();
+		resp = myrecv(PN);
 		resp_msg = resp->message;
 		parse_msg_post_block_response(resp_msg, &uuid);
 		if(get_header_resource(resp_msg) != BACS_FILE || 
