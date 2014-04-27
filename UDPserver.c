@@ -58,10 +58,10 @@ struct Node* myrecv(int PN)
 	
 	bzero(&my_addr, sizeof(my_addr));
 	my_addr.sin_family = AF_INET;
-	
+	/*
 	if(PN==NULL){
 		my_addr.sin_port = htons(PORT);
-	}
+	}*/
 	else
 		my_addr.sin_port = PN;
 	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
