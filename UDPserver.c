@@ -91,24 +91,28 @@ struct Node* myrecv(int PN)
 		/*printf("Received from client %s:%d:\t:%s\n\n",inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port), voidbuf);*/
 		memset(ackbuf, 0, sizeof(ackbuf));
 		strcpy(ackbuf,"ACK");	
-		printf("ACK SENT\n");
+		
 		if (sendto(sockfd, ackbuf, BUFLEN, 0, (struct sockaddr*)&cli_addr, slen)==-1)
 		{
 			printf("Error: Sendto Failure\n");
 			return;/* (void*)FAILURE; */
 		}
-		
+		printf("ACK SENT\n");
 		if(recv_message.seq_number==0){
+		printf("seq number = 0\n");
 			if(head == NULL){
+			printf("head is null\n");
 					create_new_node(head,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks);
 				}
 			else{
+			printf("head not null\n");
 			    while(Itr!=NULL){
+			    		
 					Itr = Itr->next;
 					}
 			    }
 			    create_new_node(Itr,recv_message.seq_number, cli_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks);
-			}
+		}
 		
 			
 		else{
