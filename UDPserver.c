@@ -33,7 +33,7 @@ void delete_node(struct Node* remove_current_node_from_list){
 	free(remove_current_node_from_list);	
 }
 
-struct Node* myrecv(void)
+struct Node* myrecv(int PN)
 {
 	struct sockaddr_in my_addr, cli_addr;
 	struct Send_message recv_message;
@@ -58,7 +58,12 @@ struct Node* myrecv(void)
 	
 	bzero(&my_addr, sizeof(my_addr));
 	my_addr.sin_family = AF_INET;
-	my_addr.sin_port = htons(PORT);
+	
+	if(PN==NULL){
+		my_addr.sin_port = htons(PORT);
+	}
+	else
+		my_addr.sin_port = PN;
 	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (bind(sockfd, (struct sockaddr* ) &my_addr, sizeof(my_addr))==-1)		
