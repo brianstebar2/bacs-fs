@@ -5,7 +5,7 @@
 #include "messages.h"
 #include "send_file.h"
 
-void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids, int PN)
+int send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids, int PN)
 {
 	FILE *fp = fopen(path,"r");
 	char block[DEFAULT_BLOCK_SIZE];
@@ -15,47 +15,52 @@ void send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids, int P
 	{
 		char *msg = 0, *err_msg_string = 0;
 		uint64_t msg_len;
+		int num;
 		uuid_t uuid;
-		/*uint32_t size;*/
-		char *content = 0;
 		char *resp_msg = 0;
 		ErrorCode error;
 		struct Node* resp;
 		if(i>=num_uuids)
-			printf("****************error num_uuids");
-		/* Set block initially to 0 */
-		memset(block,0,sizeof(block));
-		/* Caller should check for -1 --> Empty file! */
-		if(fp==NULL)
-			{
-			printf("\n ERROR - EMPTY FILE!");
-				/* return EOF; */
-			}
-		fread(block, 1, DEFAULT_BLOCK_SIZE, fp);
-		create_msg_post_block_request(uuids[i], DEFAULT_BLOCK_SIZE, block, &msg, &msg_len);
-		/* mysend(msg...) */
-		error = mysend(block, IPaddr, PN, DEFAULT_BLOCK_SIZE);
-		if(error == FAILURE || error == RETRY)
-			printf("error in send");
-		
-		/* Wait for server response */
-		/* myrecv(..., resp_msg); */
-		resp = myrecv(CLIENT_PORT);
-		resp_msg = resp->message;
-		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
-      			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s\n",err_msg_string);
+			printf("****************error num_uuids");
+			fclose(fp);
+			return 0;
 		}
-    		else
-			parse_msg_post_block_response(resp_msg, &uuid);
-		
+		else
+		{
+			memset(block,0,sizeof(block));
+			num = fread(block, 1, DEFAULT_BLOCK_SIZE, fp);
+			create_msg_post_block_request(uuids[i], num, block, &msg, &msg_len);
+			error = mysend(msg, IPaddr, PN, msg_len);
+			if(error == FAILURE || error == RETRY)
+			{
+				printf("error in send");
+				free(msg);
+				fclose(fp);
+				return 0;
+			}
+			else
+			{
+				resp = myrecv(CLIENT_PORT);
+				resp_msg = resp->message;
+				if(get_header_type(resp_msg) == BACS_ERROR)
+				{
+      					parse_msg_error(resp_msg, &err_msg_string);
+					printf("%s\n",err_msg_string);
+					fclose(fp);
+					return 0;
+				}
+    				else
+					parse_msg_post_block_response(resp_msg, &uuid);
+			}
+			free(err_msg_string);
+			free(resp->message);
+			free(resp);
+			free(msg);
+		}
 		i++;
-		free(err_msg_string);
-		free(resp->message);
-		free(resp);
-		free(msg);
-		free(content);
 	}
+	printf("\n...File uploaded successfully\n");
 	fclose(fp);
+	return 1;
 }
