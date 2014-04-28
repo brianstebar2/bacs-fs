@@ -66,13 +66,10 @@ int main(int argc, char **argv)
   /* TODO: Otherwise, we're a master */
 
   /* Listen for messages */
-  socket_receive_create(port);
-  socket_send_create(CLIENT_PORT);
   printf("BACS - Server ready. Listening on port %d.\n", port);
   start_listening(port);
   printf("BACS - Server shutting down...\n");
-  socket_receive_close();
-  socket_send_close();
+
   /* Clean up */
   destroy_meta_t(fs_metadata);
 

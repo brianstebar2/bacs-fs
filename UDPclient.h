@@ -13,5 +13,7 @@
 #include "definitions.h"
 
 ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks);
+void socket_send_close();
+void socket_send_create(int PN);
 
 #endif /* UDPCLIENT_H */

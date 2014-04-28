@@ -13,5 +13,8 @@
 #include "definitions.h"
 
 struct Node* myrecv(int PN);
+void socket_receive_close();
+void socket_receive_create(int PN);
+
 
 #endif /* UDPSERVER_H */

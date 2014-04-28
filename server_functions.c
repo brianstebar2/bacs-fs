@@ -462,8 +462,9 @@ void start_listening(int port)
   uint64_t resp_len;
   struct Node *request_node;
 
-
-
+  /* Set up the socket connections */
+  socket_receive_create(port);
+  socket_send_create(CLIENT_PORT);
 
   /* Debugging crap... */
   // uuid_t *uuids;
@@ -758,10 +759,11 @@ void start_listening(int port)
           /* FOLDER requests */
           case BACS_FOLDER:  
             switch(get_header_action(msg)) {
-              case GET:   handle_get_folder_meta(msg, &resp, &resp_len); break;
-              case POST:  handle_post_folder(msg, &resp, &resp_len); break;
-              default:    create_msg_error(0, get_header_resource(msg),
-                            ERR_MSG_ACTION, &resp, &resp_len);
+              case DELETE: handle_delete_folder(msg, &resp, &resp_len); break;
+              case GET:    handle_get_folder_meta(msg, &resp, &resp_len); break;
+              case POST:   handle_post_folder(msg, &resp, &resp_len); break;
+              default:     create_msg_error(0, get_header_resource(msg),
+                             ERR_MSG_ACTION, &resp, &resp_len);
             }
             break;
 
@@ -788,4 +790,8 @@ void start_listening(int port)
     resp = NULL;
     request_node = NULL;
   }
+
+  /* Clean up the server */
+  socket_receive_close();
+  socket_send_close();
 }
