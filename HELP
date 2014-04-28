@@ -1,19 +1,24 @@
 Commands
 
 help: displays manual
-upload: uploads file/diractory to server
+upload: uploads file/directory to server
 	upload -f [file]
 	upload -d [dir]
 download: downloads file/directory from server
 	download -f [file]
 	download -d [dir]
-cd: change directory
+cd: change to local/remote directory
 	cd -l [local_dir]
 	cd -r [remote_dir]
-ls: view directory contents
+ls: view local/remote directory contents
 	ls -l
 	ls -r
 mkdir: create directory
 	mkdir -l [local_dir]
 	mkdir -r [remote_dir]
+delete: delete file/directory from client/server
+	delete -l -f [file]
+	delete -l -d [dir]
+	delete -r -f [file]
+	delete -r -d [dir]
 exit: exit client
