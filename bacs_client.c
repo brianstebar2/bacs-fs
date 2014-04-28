@@ -139,53 +139,59 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
   		printf("dirpath:%s\n",dirpath);		
 		create_msg_get_folder_meta_request(dirpath, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
+		printf("***************here1\n");
+		free(msg);
 		if(error == FAILURE || error == RETRY)
+		{
 			printf("error in send\n");
+			return;
+		}
 		resp = myrecv(CLIENT_PORT);
+		printf("***************here2\n");
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);
+			free(err_msg_string);
+			free(resp->message);
+			free(resp);
+			return;
 		}
-    		else
-		{
-			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
-			printf("remote directory contains: \n");
-			for(i=0; i < num_metas; i++)
-			{
-				printf("%s\n",basic_metas[i].name);
-				free(basic_metas[i].name);
-			}
-			memset(path, 0, 1024);
-			strcpy(path, dirpath);
-		}
+		printf("***************here2\n");
+		parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
 		free(err_msg_string);
-		free(msg);
 		free(resp->message);
 		free(resp);
+		printf("remote directory contains: \n");
+		for(i=0; i < num_metas; i++)
+		{
+			printf("%s\n",basic_metas[i].name);
+			free(basic_metas[i].name);
+		}
+		memset(path, 0, 1024);
+		strcpy(path, dirpath);
 		free(basic_metas);
-		printf("Remote directory '%s'\n", path);
 	}
-  return 0;
+	printf("Remote directory '%s'\n", path);
+  	return 0;
 }
 
 void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 {
 	if(l==0)
-{
-  DIR *dp;
-  struct dirent *ep;
-
-  dp = opendir (path);
-  if (dp != NULL)
-  {
-    while ((ep = readdir (dp)))
-      puts (ep->d_name);
-    closedir (dp);
-  }
-  else
-    perror ("ls() error");
+	{
+  		DIR *dp;
+  		struct dirent *ep;
+		dp = opendir (path);
+  		if (dp != NULL)
+  		{
+    			while ((ep = readdir (dp)))
+      				puts (ep->d_name);
+    			closedir (dp);
+  		}
+  		else
+    			perror ("ls() error");
 	}
 	else
 	{
@@ -198,29 +204,33 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 		struct Node* resp;
 		create_msg_get_folder_meta_request(path, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
+		free(msg);
 		if(error == FAILURE || error == RETRY)
+		{
 			printf("error in send\n");
+			return;
+		}
 		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
       			parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);
+			free(err_msg_string);
+			free(resp->message);
+			free(resp);
+			return;
 		}
-    		else
-		{
-			parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);		
-			printf("remote directory contains: \n");
-			for(i=0; i < num_metas; i++)
-			{
-				printf("%s\n",basic_metas[i].name);
-				free(basic_metas[i].name);
-			}
-		}
+    		parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);	
 		free(err_msg_string);
-		free(msg);
 		free(resp->message);
-		free(resp);
+		free(resp);	
+		printf("remote directory contains: \n");
+		for(i=0; i < num_metas; i++)
+		{
+			printf("%s\n",basic_metas[i].name);
+			free(basic_metas[i].name);
+		}
 		free(basic_metas);
 	}
 }
@@ -255,22 +265,26 @@ void make_dir(char* dir, bool l, char* path, unsigned long IPaddr, int PN)
     	strcat(dirpath,dir);
 	create_msg_post_folder_request(dirpath, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
+	free(msg);
 	if(error == FAILURE || error == RETRY)
-			printf("error in send\n");
+	{
+		printf("error in send\n");
+		return;
+	}
 	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
       		parse_msg_error(resp_msg, &err_msg_string);
 		printf("%s\n",err_msg_string);
+		free(err_msg_string);
+		free(resp->message);
+		free(resp);
+		return;
 	}
-    	else
-	{
-		parse_msg_post_folder_response(resp_msg);
-		printf("Remote directory '%s' created at path: %s\n", dir, path);
-	}
+	parse_msg_post_folder_response(resp_msg);
+	printf("Remote directory '%s' created at path: %s\n", dir, path);
 	free(err_msg_string);
-	free(msg);
 	free(resp->message);
 	free(resp);
   }
@@ -325,62 +339,44 @@ bool upload_file(char* file_name, char* local_path, char* remote_path, unsigned 
     	create_msg_post_file_request(filepath, size, &msg, &msg_len);
 	/*mysend(msg, ...) */
 	error = mysend(msg, IPaddr, PN, msg_len);
+	free(msg);
 	if(error == FAILURE || error == RETRY)
 	{
 		printf("error in send\n");
-		free(msg);
+		return 0;
+	}	
+	resp = myrecv(CLIENT_PORT);
+	resp_msg = resp->message;
+	if(get_header_type(resp_msg) == BACS_ERROR)
+	{
+      		parse_msg_error(resp_msg, &err_msg_string);
+		printf("%s\n",err_msg_string);
+		free(err_msg_string);
+		free(resp->message);
+		free(resp);
 		return 0;
 	}
-	else		
-	{
-		resp = myrecv(CLIENT_PORT);
-		resp_msg = resp->message;
-		if(get_header_type(resp_msg) == BACS_ERROR)
-		{
-      			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s\n",err_msg_string);
-			free(err_msg_string);
-			free(resp->message);
-			free(resp);
-  			free(msg);
-			return 0;
-		}
-    		else
-  		{
-			parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
-			if(num_uuids==0)
-			{
-				printf("***************error num_uuids\n");
-				free(err_msg_string);
-				free(resp->message);
-				free(resp);
-  				free(msg);
-				free(uuids);
-				return 0;
-			}
-			else
-			{
-				memset(filepath, 0, 1024);
-				strcpy(filepath,local_path);
-				strcat(filepath,"/");
-    				strcat(filepath,file_name);
-				bool success = send_file(filepath, IPaddr, uuids, num_uuids, PN);
-				if(success == 0)
-				{
-					free(err_msg_string);
-					free(resp->message);
-					free(resp);
-  					free(msg);
-					free(uuids);
-					return 0;
-				}
-			}
-		}	
-	}
+	parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
 	free(err_msg_string);
 	free(resp->message);
 	free(resp);
-  	free(msg);
+	if(num_uuids==0)
+	{
+		printf("***************error num_uuids\n");
+		free(uuids);
+		return 0;
+	}
+	bool success;				
+	memset(filepath, 0, 1024);
+	strcpy(filepath,local_path);
+	strcat(filepath,"/");
+    	strcat(filepath,file_name);
+	success = send_file(filepath, IPaddr, uuids, num_uuids, PN);
+	if(success == 0)
+	{
+		free(uuids);
+		return 0;
+	}	
 	free(uuids);
 	return 1;
 }	
@@ -450,68 +446,68 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
     	printf("Downloading file '%s'..\n", file_name);
 	create_msg_get_file_request(remote_file, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
+	free(msg);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send\n");
-	else
 	{
+		printf("error in send\n");
+		return;
+	}
+	resp = myrecv(CLIENT_PORT);
+	resp_msg = resp->message;
+	if(get_header_type(resp_msg) == BACS_ERROR)
+	{
+      		parse_msg_error(resp_msg, &err_msg_string);
+		printf("%s\n",err_msg_string);
+		free(resp->message);
+		free(resp);
+		free(err_msg_string);
+		return;
+	}
+	parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
+	fp = fopen(local_file, "w"); 
+	free(resp->message);
+	free(resp);
+	free(err_msg_string);
+	for(i=0; i<num_blocks; i++)
+	{
+		char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
+		uuid_t uuid;
+		uint32_t size;
+		char *content = 0;
+		ErrorCode error;
+		struct  Node* resp;
+		create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
+		error = mysend(msg, IPaddr, PN, msg_len);
+		free(msg);
+		if(error == FAILURE || error == RETRY)
+		{
+			printf("error in send\n");
+			free(blocks);
+			close(fp);
+			return;
+		}
 		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
-      			parse_msg_error(resp_msg, &err_msg_string);
+	      		parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);
+			free(resp->message);
+			free(resp);
+			free(err_msg_string);
+			free(blocks);
+			close(fp);
+			return;
 		}
-    		else
-		{
-			bool flag = 0;
-			parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
-			fp = fopen(local_file, "w"); 
-			for(i=0; i<num_blocks; i++)
-			{
-				char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
-				uuid_t uuid;
-				uint32_t size;
-				char *content = 0;
-				ErrorCode error;
-				struct  Node* resp;
-				create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
-				error = mysend(msg, IPaddr, PN, msg_len);
-				if(error == FAILURE || error == RETRY)
-				{
-					printf("error in send\n");
-					flag = 1;
-				}
-				else
-				{
-					resp = myrecv(CLIENT_PORT);
-					resp_msg = resp->message;
-					if(get_header_type(resp_msg) == BACS_ERROR)
-					{
-	      					parse_msg_error(resp_msg, &err_msg_string);
-						printf("%s\n",err_msg_string);
-						flag =1;
-					}
-	    				else
-					{	
-						parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
-						fwrite (content, sizeof(char), size, fp);
-					}
-				}
-				free(err_msg_string);
-				free(msg);
-				free(resp->message);
-				free(resp);
-				free(content);
-			}	
-			if(!flag)
-    				printf("File downloaded to path: %s\n",local_path);
-			fclose(fp);
-		}
-	}
-	free(err_msg_string);
-	free(resp->message);
-	free(resp);
-	free(msg);
+		parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
+		fwrite (content, sizeof(char), size, fp);
+		free(content);
+		free(resp->message);
+		free(resp);
+		free(err_msg_string);
+	}	
+	printf("File downloaded to path: %s\n",local_path);
+	fclose(fp);
 	free(blocks);
 }
 
@@ -525,111 +521,46 @@ void download_folder(char* file_name, char* local_path, char* remote_path, unsig
 	basic_meta_t *basic_metas = 0;
 	ErrorCode error;
 	struct Node* resp;
-
-	printf("Downloading directory '%s'..\n", file_name);
-    strcpy(local_temp, local_path);
-    strcpy(remote_temp, remote_path);
-    make_dir(file_name, 0, local_path, IPaddr, PN);
-    change_dir(file_name, local_temp, 0, IPaddr, PN);
-    change_dir(file_name, remote_temp, 1, IPaddr, PN);
+    	strcpy(local_temp, local_path);
+    	strcpy(remote_temp, remote_path);
+    	make_dir(file_name, 0, local_path, IPaddr, PN);
+    	change_dir(file_name, local_temp, 0, IPaddr, PN);
+    	change_dir(file_name, remote_temp, 1, IPaddr, PN);
 
 	create_msg_get_folder_meta_request(remote_temp, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
+	free(msg);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send\n");
+	{	printf("error in send\n");
+		return;
+	}
+	printf("************here1\n");
 	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
+	printf("************here2\n");
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
       		parse_msg_error(resp_msg, &err_msg_string);
 		printf("%s",err_msg_string);
-	}
-    	else
-		parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
-	free(err_msg_string);
-	printf("remote directory contains: \n");
-	for(i=0; i < num_metas; i++)
-	{
-		FILE *fp;   	
-		char local_file[1024];
-		char remote_file[1024];
-		char *msg = 0;
-		uint64_t msg_len;
-		basic_block_t *blocks = 0;
-		uint64_t num_blocks;
-		int i;
-		ErrorCode error;
-		struct Node* resp;
-		char * resp_msg = 0, *err_msg_string = 0;
-
-		printf("%s\n",basic_metas[i].name);
-		strcpy(local_file,local_temp);
-	    	strcat(local_file,"/");
-	    	strcat(local_file,basic_metas[i].name);
-		strcpy(remote_file,remote_temp);
-	    	strcat(remote_file,"/");
-	    	strcat(remote_file,basic_metas[i].name);
-		fp = fopen(local_file, "w"); 
-	    	printf("Downloading file '%s'..\n", file_name);
-		create_msg_get_file_request(remote_file, &msg, &msg_len);
-		error = mysend(msg, IPaddr, PN, msg_len);
-		if(error == FAILURE || error == RETRY)
-			printf("error in send\n");
-		resp = myrecv(CLIENT_PORT);
-		resp_msg = resp->message;
-		if(get_header_type(resp_msg) == BACS_ERROR)
-		{
-      			parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s\n",err_msg_string);
-		}
-    		else
-			parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
-		free(err_msg_string);
 		free(resp->message);
 		free(resp);
-		free(msg);
-		for(i=0; i<num_blocks; i++)
-		{
-			char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
-			uuid_t uuid;
-			uint32_t size;
-			char *content = 0;
-			ErrorCode error;
-			struct  Node* resp;
-			create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
-			error = mysend(msg, IPaddr, PN, msg_len);
-			if(error == FAILURE || error == RETRY)
-				printf("error in send\n");
-			resp = myrecv(CLIENT_PORT);
-			resp_msg = resp->message;
-			if(get_header_type(resp_msg) == BACS_ERROR)
-			{
-      				parse_msg_error(resp_msg, &err_msg_string);
-			printf("%s\n",err_msg_string);
-			}
-    			else			
-				parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
-			free(err_msg_string);
-			fwrite (content, sizeof(char), size, fp);
-			free(msg);
-			free(resp->message);
-			free(resp);
-			free(content);
-		}
-		free(blocks);
-		fclose(fp);
-	    	printf("File downloaded to path: %s\n",local_temp);
-		free(basic_metas[i].name);
+		free(err_msg_string);
+		return;
 	}
-	free(msg);
+	printf("************here3\n");
+	parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
 	free(resp->message);
 	free(resp);
+	free(err_msg_string);
+	for(i=0; i < num_metas; i++)
+	{
+		if(strcmp(basic_metas[i].name,".")!=0 && strcmp(basic_metas[i].name,"..")!=0)
+			download_file(basic_metas[i].name, local_temp, remote_temp, IPaddr, PN);
+		//free(basic_metas[i].name);
+	}
 	free(basic_metas);
  	/*download file complete*/
-   
-    strcpy(local_path, local_temp);
-    strcpy(remote_path, remote_temp);
-    printf("Directory downloaded to path: %s\n",local_path);
+    	printf("Directory downloaded to path: %s\n",local_path);
 }
 
 void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, int PN)
@@ -685,7 +616,8 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 	{
 		char filepath[1024];
 		strcpy(filepath, path);
-		strcat(filepath, "/");
+		if(strcmp(path,"/")!=0)
+			strcat(filepath, "/");
 		strcat(filepath, file_name);
 		if(f==0)
 		{
@@ -696,19 +628,27 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 			create_msg_delete_file_request(filepath, &msg, &msg_len);
 			error = mysend(msg, IPaddr, PN, msg_len);
 			if(error == FAILURE || error == RETRY)
+			{
 				printf("error in send\n");
+				free(msg);
+				return;
+			}
 			resp = myrecv(CLIENT_PORT);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
       				parse_msg_error(resp_msg, &err_msg_string);
 				printf("%s\n",err_msg_string);
+				free(err_msg_string);
+				free(msg);
+				free(resp->message);
+				free(resp);
+				return;
 			}
     			else
 				parse_msg_delete_file_response(resp_msg);
 			free(err_msg_string);
 			free(msg);
-			free(resp->message);
 			free(resp);
     	
 			printf("Deleted remote file '%s'\n", file_name);
@@ -721,22 +661,27 @@ void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, i
 			struct Node* resp;
 			create_msg_delete_folder_request(filepath, &msg, &msg_len);
 			error = mysend(msg, IPaddr, PN, msg_len);
+			free(msg);
 			if(error == FAILURE || error == RETRY)
+			{
 				printf("error in send\n");
+				return;
+			}
 			resp = myrecv(CLIENT_PORT);
 			resp_msg = resp->message;
 			if(get_header_type(resp_msg) == BACS_ERROR)
 			{
       				parse_msg_error(resp_msg, &err_msg_string);
 				printf("%s\n",err_msg_string);
+				free(resp->message);
+				free(resp);
+				free(err_msg_string);
+				return;
 			}
-    			else
-				parse_msg_delete_folder_response(resp_msg);
-			free(err_msg_string);
-			free(msg);
+			parse_msg_delete_folder_response(resp_msg);
+    			free(err_msg_string);
 			free(resp->message);
 			free(resp);
-    	
 			printf("Deleted remote folder '%s'\n", file_name);
 		}
 	}
@@ -770,12 +715,12 @@ int main(int argc, char *argv[])
   memset(remote_path,0, MAX_LENGTH);
   /* strcpy(local_path,"/local"); */
   strcpy(remote_path,"/");
- if (getcwd(local_path, 1024) != NULL)
+/* if (getcwd(local_path, 1024) != NULL)
     printf("\nlocal_path: %s\n", local_path);
   else
-    perror("getcwd() error");
-/*strcpy(local_path,"/home/charmi/Desktop/123");*/
-/*printf("\nlocal_path: %s\n", local_path);*/
+    perror("getcwd() error");*/
+strcpy(local_path,"/home/charmi/Desktop/123");
+printf("\nlocal_path: %s\n", local_path);
   printf("remote_path: '%s'\n", remote_path);
 
   while(1)
