@@ -552,7 +552,7 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
   }
 
   /* Check for the last token based on the target type */
-  if(current_meta != NULL) {
+  if(current_meta != NULL && path_parts[i] != NULL) {
     /* Check find_child_meta for error codes */
     err_code = find_child_meta(current_meta, path_parts[i], target_type, 
       &current_meta);

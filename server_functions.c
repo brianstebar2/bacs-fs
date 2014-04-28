@@ -723,7 +723,7 @@ void start_listening(int port)
     printf("Parsing received message...\n");
     long resp_ip = request_node->IP;
     msg = request_node->message; 
-    printf("Recevied request: ");
+    printf("Received request: ");
     print_msg(msg);
     printf("\n");
 
