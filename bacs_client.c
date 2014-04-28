@@ -715,12 +715,12 @@ int main(int argc, char *argv[])
   memset(remote_path,0, MAX_LENGTH);
   /* strcpy(local_path,"/local"); */
   strcpy(remote_path,"/");
-/* if (getcwd(local_path, 1024) != NULL)
+ if (getcwd(local_path, 1024) != NULL)
     printf("\nlocal_path: %s\n", local_path);
   else
-    perror("getcwd() error");*/
-strcpy(local_path,"/home/charmi/Desktop/123");
-printf("\nlocal_path: %s\n", local_path);
+    perror("getcwd() error");
+/*strcpy(local_path,"/home/charmi/Desktop/123");
+printf("\nlocal_path: %s\n", local_path);*/
   printf("remote_path: '%s'\n", remote_path);
 
   while(1)
