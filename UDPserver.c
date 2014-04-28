@@ -72,10 +72,14 @@ struct Node* myrecv(int PN)
 			printf("Error: Recvfrom Failure\n");
 			return 0;
 		}
+		printf("################here0\n");
 		printf("Message received: ");
+		printf("################here1\n");
 		print_msg(recv_message.message);
+		printf("################here2\n");
 		memset(ackbuf, 0, sizeof(ackbuf));
-		strcpy(ackbuf,"ACK");	
+		strcpy(ackbuf,"ACK");
+		printf("################here3\n");	
 		if (sendto(sockfd_rcv, ackbuf, BUFLEN, 0, (struct sockaddr*)&my_addr, slen)==-1)
 		{
 			printf("Error: Sendto Failure\n");
