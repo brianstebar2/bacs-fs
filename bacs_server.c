@@ -39,7 +39,7 @@ int main(int argc, char **argv)
         port = atoi(optarg);
         break;
       default: 
-        printf("Usage: %s, [-h host_ip] [-p port]\n", argv[0]);
+        printf("Usage: %s [-h host_ip] [-p port]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
   }

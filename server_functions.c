@@ -170,6 +170,8 @@ void handle_get_block(char *msg, char **response, uint64_t *response_len)
                      response, response_len);
     goto cleanup_uuid_string;
   }
+
+  /* TODO: Check block retrieval for errors */
   block_content = get_block_content(block_ptr);
 
   /* Create response containing block content */

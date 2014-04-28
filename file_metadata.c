@@ -535,7 +535,7 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
   /* If necessary, navigate to correct folder within metadata; to tell if
      path_parts[i] is a file or folder name, check the next index of path_parts
      for a null terminator */
-  while(path_parts[i+1]) {
+  while(path_parts[i] && path_parts[i+1]) {
     if(current_meta != NULL) {
       /* TODO: Check find_child_meta for error codes */
       err_code = find_child_meta(current_meta, path_parts[i], BACS_FOLDER_TYPE, 
@@ -549,6 +549,7 @@ uint8_t find_meta(meta_t *folder, char *path, uint8_t target_type,
 
     /* When this loop exits, path_parts[i] will point at the last token,
        and current_meta will point to the folder containing the last token */
+    fprintf(stderr, "done\n");
   }
 
   /* Check for the last token based on the target type */
