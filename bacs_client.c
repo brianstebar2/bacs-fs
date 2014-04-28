@@ -73,13 +73,12 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		}
 		else
 			strcpy(dirpath,"/");
-  		printf("dirpath:%s\n",dirpath);
   		result = chdir(dirpath);
   		if(result==0)
   		{
     			memset(path, 0, 1024);
 			strcpy(path, dirpath);
-    			printf("Changed to directory '%s'\n", path);
+    			printf("Changed to local directory '%s'\n", path);
   		}
   		else 
   		{
@@ -288,126 +287,148 @@ void get_string(char *string, char *input, int index)
   /* printf("%s",string); */
 }
 
-void upload(char* file_name, bool f, char* local_path, char* remote_path, unsigned long IPaddr, int PN)
+bool upload_file(char* file_name, char* local_path, char* remote_path, unsigned long IPaddr, int PN)
 {
-  if(f==0)
-  {
-    char filepath[1024];
-    struct stat st;
-	uint64_t size = st.st_size;
+    	char filepath[1024];
+ 	struct stat st;
+	uint64_t size;
 	char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
 	uint64_t msg_len;
 	uuid_t *uuids = 0;
 	uint64_t num_uuids;
 	ErrorCode error;
 	struct Node* resp;
-    printf("...Uploading file '%s'...\n", file_name);
-    strcpy(filepath,local_path);
-    strcat(filepath,"/");
-    strcat(filepath,file_name);
-	stat(filepath, &st);
-    	create_msg_post_file_request(file_name, size, &msg, &msg_len);
+    	printf("...Uploading file '%s'...\n", file_name);
+   	strcpy(filepath,local_path);
+	strcat(filepath,"/");
+    	strcat(filepath,file_name);
+	if(stat(filepath, &st)==0)
+	{
+		size = st.st_size;
+		printf("size= %d\n", size);
+		if(size == 0)
+		{
+			printf("File empty. Cannot be uploaded\n");
+			return 0;
+		}
+	}
+	else
+	{	
+		perror("size error: ");
+		return 0;
+	}
+	memset(filepath, 0, 1024);
+	strcpy(filepath,remote_path);
+	if(strcmp(remote_path,"/")!=0)
+		strcat(filepath,"/");
+    	strcat(filepath,file_name);
+    	create_msg_post_file_request(filepath, size, &msg, &msg_len);
 	/*mysend(msg, ...) */
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
-		printf("error in send\n");
-	resp = myrecv(CLIENT_PORT);
-	resp_msg = resp->message;
-	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
-      		parse_msg_error(resp_msg, &err_msg_string);
-		printf("%s\n",err_msg_string);
+		printf("error in send\n");
+		free(msg);
+		return 0;
 	}
-    	else
-  /* Wait for response */
-  /* myrecv(blah blah blah, resp_msg) */
-  		parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
+	else		
+	{
+		resp = myrecv(CLIENT_PORT);
+		resp_msg = resp->message;
+		if(get_header_type(resp_msg) == BACS_ERROR)
+		{
+      			parse_msg_error(resp_msg, &err_msg_string);
+			printf("%s\n",err_msg_string);
+			free(err_msg_string);
+			free(resp->message);
+			free(resp);
+  			free(msg);
+			return 0;
+		}
+    		else
+  		{
+			parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
+			if(num_uuids==0)
+			{
+				printf("***************error num_uuids\n");
+				free(err_msg_string);
+				free(resp->message);
+				free(resp);
+  				free(msg);
+				free(uuids);
+				return 0;
+			}
+			else
+			{
+				memset(filepath, 0, 1024);
+				strcpy(filepath,local_path);
+				strcat(filepath,"/");
+    				strcat(filepath,file_name);
+				bool success = send_file(filepath, IPaddr, uuids, num_uuids, PN);
+				if(success == 0)
+				{
+					free(err_msg_string);
+					free(resp->message);
+					free(resp);
+  					free(msg);
+					free(uuids);
+					return 0;
+				}
+			}
+		}	
+	}
 	free(err_msg_string);
 	free(resp->message);
 	free(resp);
   	free(msg);
-	if(num_uuids==0)
-		printf("***************error num_uuids\n");
-	  send_file(filepath, IPaddr, uuids, num_uuids, PN);
-	  free(uuids);
+	free(uuids);
+	return 1;
+}	
 
-    printf("\n...File uploaded to path: %s\n",remote_path);
-  }
-  else
-  {
-    char local_temp[1024], remote_temp[1024];
-    DIR *dirp;
-    struct dirent *dp; 
 
-    strcpy(local_temp, local_path);
-    strcpy(remote_temp, remote_path);
-    printf("Uploading directory '%s'\n", file_name);
-    make_dir(file_name, 1, remote_path, IPaddr, PN);
-    change_dir(file_name, remote_path, 1, IPaddr, PN);
-    change_dir(file_name, local_path, 0, IPaddr, PN);
-
-    /* upload individual files */
-    dirp = opendir(local_path);
-    if (dirp != 0) 
-    {
-	int success;
-      while ((dp = readdir(dirp)))
-      {
-    
-	/*upload file start*/
-	struct stat st;
-	uint64_t size = st.st_size;
-	char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
-	uint64_t msg_len;
-	uuid_t *uuids = 0;
-	uint64_t num_uuids;
-	ErrorCode error;
-	struct Node* resp;
-	char filepath[1024];
-        strcpy(filepath,local_path);
-        strcat(filepath,"/");
-        strcat(filepath,dp->d_name);
-    	printf("...Uploading file '%s'...\n", filepath);
-	stat(filepath, &st);
-    	create_msg_post_file_request(dp->d_name, size, &msg, &msg_len);
-	error = mysend(msg, IPaddr, PN, msg_len);
-	if(error == FAILURE || error == RETRY)
-		printf("error in send\n");
-	resp = myrecv(CLIENT_PORT);
-	resp_msg = resp->message;
-	if(get_header_type(resp_msg) == BACS_ERROR)
-	{
-      		parse_msg_error(resp_msg, &err_msg_string);
-		printf("%s",err_msg_string);
+void upload_folder(char* file_name, char* local_path, char* remote_path, unsigned long IPaddr, int PN)
+{
+    	char local_temp[1024], remote_temp[1024];
+    	DIR *dirp;
+    	struct dirent *dp; 
+	int empty = 1;
+	strcpy(local_temp, local_path);
+    	strcpy(remote_temp, remote_path);
+    	change_dir(file_name, local_path, 0, IPaddr, PN);
+	if(strcmp(remote_path, "/")!=0)
+		strcat(remote_path,"/");
+	strcat(remote_path, file_name);
+	/* upload individual files */
+    	dirp = opendir(local_path);
+    	if (dirp != 0) 
+    	{
+		int success;
+      		while ((dp = readdir(dirp)))
+      		{
+			if(strcmp(dp->d_name,".")!=0 && strcmp(dp->d_name,"..")!=0)
+			{
+    				bool success = upload_file(dp->d_name, local_path, remote_path, IPaddr, PN);
+				if(success == 0)
+				{
+					printf("File '%s' not uploaded successfully\n",dp->d_name);
+				}
+				empty = 0;
+			}
+      		}
+		success = closedir(dirp);
+      		if(success!=0)
+			perror("closdir() error");
 	}
-    	else
-  		parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
-  	free(msg);
-	if(num_uuids==0)
-		printf("***************error num_uuids\n");
-	free(err_msg_string);
-	free(resp->message);
-	free(resp);
-	  send_file(filepath, IPaddr, uuids, num_uuids, PN);
-	  free(uuids);
-	/*Upload file end*/
-        printf("\n...File uploaded to path: %s\n",remote_path);
-      }
-	success = closedir(dirp);
-      if(success!=0)
-	perror("closdir() error");
-	
-    }
-    strcpy(local_path, local_temp);
-    strcpy(remote_path, remote_temp);
-    printf("Directory uploaded to path: %s\n",remote_path);
-  }
+    	strcpy(local_path, local_temp);
+    	strcpy(remote_path, remote_temp);
+	if(empty)
+	{
+		make_dir(file_name, 1, remote_temp, IPaddr, PN);
+	}
 }
 
-void download(char* file_name, bool f, char* local_path, char* remote_path, unsigned long IPaddr, int PN)
+void download_file(char* file_name, char* local_path, char* remote_path, unsigned long IPaddr, int PN)
 {
-  if(!f)
-  {
 	FILE *fp;   	
 	char local_file[1024];
 	char remote_file[1024];
@@ -423,39 +444,16 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
     	strcat(local_file,"/");
     	strcat(local_file,file_name);
 	strcpy(remote_file,remote_path);
-    	strcat(remote_file,"/");
+	if(strcmp(remote_path,"/")!=0)
+    		strcat(remote_file,"/");
     	strcat(remote_file,file_name);
-	fp = fopen(local_file, "w"); 
     	printf("Downloading file '%s'..\n", file_name);
 	create_msg_get_file_request(remote_file, &msg, &msg_len);
 	error = mysend(msg, IPaddr, PN, msg_len);
 	if(error == FAILURE || error == RETRY)
 		printf("error in send\n");
-	resp = myrecv(CLIENT_PORT);
-	resp_msg = resp->message;
-	if(get_header_type(resp_msg) == BACS_ERROR)
+	else
 	{
-      		parse_msg_error(resp_msg, &err_msg_string);
-		printf("%s\n",err_msg_string);
-	}
-    	else
-		parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
-	free(err_msg_string);
-	free(resp->message);
-	free(resp);
-	free(msg);
-	for(i=0; i<num_blocks; i++)
-	{
-		char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
-		uuid_t uuid;
-		uint32_t size;
-		char *content = 0;
-		ErrorCode error;
-		struct  Node* resp;
-		create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
-		error = mysend(msg, IPaddr, PN, msg_len);
-		if(error == FAILURE || error == RETRY)
-			printf("error in send\n");
 		resp = myrecv(CLIENT_PORT);
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
@@ -464,23 +462,62 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
 			printf("%s\n",err_msg_string);
 		}
     		else
-			parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
-		free(err_msg_string);
-		fwrite (content, sizeof(char), size, fp);
-		free(msg);
-		free(resp->message);
-		free(resp);
-		free(content);
+		{
+			bool flag = 0;
+			parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
+			fp = fopen(local_file, "w"); 
+			for(i=0; i<num_blocks; i++)
+			{
+				char *msg = 0, *resp_msg = 0, *err_msg_string = 0;
+				uuid_t uuid;
+				uint32_t size;
+				char *content = 0;
+				ErrorCode error;
+				struct  Node* resp;
+				create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
+				error = mysend(msg, IPaddr, PN, msg_len);
+				if(error == FAILURE || error == RETRY)
+				{
+					printf("error in send\n");
+					flag = 1;
+				}
+				else
+				{
+					resp = myrecv(CLIENT_PORT);
+					resp_msg = resp->message;
+					if(get_header_type(resp_msg) == BACS_ERROR)
+					{
+	      					parse_msg_error(resp_msg, &err_msg_string);
+						printf("%s\n",err_msg_string);
+						flag =1;
+					}
+	    				else
+					{	
+						parse_msg_get_block_response(resp_msg, &uuid, &size, &content);
+						fwrite (content, sizeof(char), size, fp);
+					}
+				}
+				free(err_msg_string);
+				free(msg);
+				free(resp->message);
+				free(resp);
+				free(content);
+			}	
+			if(!flag)
+    				printf("File downloaded to path: %s\n",local_path);
+			fclose(fp);
+		}
 	}
+	free(err_msg_string);
+	free(resp->message);
+	free(resp);
+	free(msg);
 	free(blocks);
-	fclose(fp);
-    printf("File downloaded to path: %s\n",local_path);
-  }
-  else
-  {   
-    char local_temp[1024], remote_temp[1024];
+}
 
-	/*list remote directory*/
+void download_folder(char* file_name, char* local_path, char* remote_path, unsigned long IPaddr, int PN)
+{
+	char local_temp[1024], remote_temp[1024];
 	char* msg = 0, * resp_msg = 0, *err_msg_string = 0;
 	uint64_t msg_len;
 	uint32_t num_metas;
@@ -593,7 +630,6 @@ void download(char* file_name, bool f, char* local_path, char* remote_path, unsi
     strcpy(local_path, local_temp);
     strcpy(remote_path, remote_temp);
     printf("Directory downloaded to path: %s\n",local_path);
-  }
 }
 
 void delete(char* file_name, char* path, bool f, bool l, unsigned long IPaddr, int PN)
@@ -713,7 +749,7 @@ int main(int argc, char *argv[])
   char *command, *input, *local_path, *remote_path;
   int PN = 0;
   struct in_addr IP;
-	unsigned long IPaddr = 0;
+  unsigned long IPaddr = 0;
   MAX_LENGTH=20;
   if (inet_aton(argv[1], &IP)==0)
   {
@@ -786,7 +822,7 @@ int main(int argc, char *argv[])
 	  char *string = (char*)malloc(sizeof(char)*20);
 	  memset(string,0,20);
           get_string(string, input, j+3);
-          upload(string, 0, local_path, remote_path, IPaddr, PN);
+          upload_file(string, local_path, remote_path, IPaddr, PN);
 	  free(string);
         }
         else if(input[j+1]=='d')
@@ -794,7 +830,7 @@ int main(int argc, char *argv[])
           char *string = (char*)malloc(sizeof(char)*20);
 	  memset(string,0,20);
           get_string(string, input, j+3);
-          upload(string, 1, local_path, remote_path, IPaddr, PN); 
+          upload_folder(string, local_path, remote_path, IPaddr, PN); 
 	  free(string);
         }
         else
@@ -817,7 +853,7 @@ int main(int argc, char *argv[])
           char *string = (char*)malloc(sizeof(char)*20);
 	  memset(string,0,20);
           get_string(string, input, j+3);
-          download(string, 0, local_path, remote_path, IPaddr, PN);
+          download_file(string, local_path, remote_path, IPaddr, PN);
 	  free(string);
         }
         else if(input[j+1]=='d')
@@ -825,7 +861,7 @@ int main(int argc, char *argv[])
           char *string = (char*)malloc(sizeof(char)*20);
 	  memset(string,0,20);
           get_string(string, input, j+3);
-          download(string, 1, local_path, remote_path, IPaddr, PN);
+          download_folder(string, local_path, remote_path, IPaddr, PN);
 	  free(string);
         }
         else
