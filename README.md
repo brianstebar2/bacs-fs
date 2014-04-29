@@ -16,11 +16,14 @@ BUILDING / COMPILING
 BACS requires a library for generating UUIDs.  On Ubuntu systems, the library
 can be obtained by running the following:
 
-$ sudo apt-get install uuid-dev
+`$ sudo apt-get install uuid-dev`
 
 With the UUID library installed, BACS can be built using the following command:
 
-$ make
+`$ make`
+
+Please note that the BACS project is an early stage prototype.  There will be
+bugs.  You have been warned. :)
 
 
 
@@ -29,7 +32,7 @@ RUNNING THE SERVER
 The BACS server is launched by running the `bacs_server` executable.  The 
 executable accepts the following arguments:
 
-$ ./bacs_server [-h host_ip] [-p port]
+`$ ./bacs_server [-h host_ip] [-p port]`
 
  - host_ip - (OPTIONAL) IP address of another BACS server in the cluster
              (Since cluster functionality is not yet complete, this parameter
@@ -43,7 +46,7 @@ RUNNING THE CLIENT
 The BACS client is launched by running the `bacs_client` executable.  The 
 executable accepts the following arguments:
 
-$ ./bacs_client <server_ip> <server_port>
+`$ ./bacs_client <server_ip> <server_port>`
 
  - server_ip   - IP address of any BACS server.
  - server_port - Port of the BACS server at <server_ip>.
@@ -51,4 +54,4 @@ $ ./bacs_client <server_ip> <server_port>
 After the client has started, use the HELP command to see the available commands
 within the BACS shell:
 
->>HELP
+`>>HELP`
