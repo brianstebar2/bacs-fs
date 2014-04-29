@@ -42,6 +42,7 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks)
 	char rcvbuf[BUFLEN];
 	struct timeval timeout;
 	char* rp = p;
+	print_msg(rp);
 	send_message.size_of_blocks = size_of_blocks;
 	/*Timer variables*/
 	timeout.tv_sec = 15;

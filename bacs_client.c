@@ -139,15 +139,13 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
   		printf("dirpath:%s\n",dirpath);		
 		create_msg_get_folder_meta_request(dirpath, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
-		printf("***************here1\n");
 		free(msg);
 		if(error == FAILURE || error == RETRY)
 		{
 			printf("error in send\n");
-			return;
+			return 1;
 		}
 		resp = myrecv(CLIENT_PORT);
-		printf("***************here2\n");
 		resp_msg = resp->message;
 		if(get_header_type(resp_msg) == BACS_ERROR)
 		{
@@ -156,9 +154,8 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 			free(err_msg_string);
 			free(resp->message);
 			free(resp);
-			return;
+			return 1;
 		}
-		printf("***************here2\n");
 		parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
 		free(err_msg_string);
 		free(resp->message);
@@ -319,7 +316,7 @@ bool upload_file(char* file_name, char* local_path, char* remote_path, unsigned 
 	if(stat(filepath, &st)==0)
 	{
 		size = st.st_size;
-		printf("size= %d\n", size);
+		printf("*********************************size= %d\n", size);
 		if(size == 0)
 		{
 			printf("File empty. Cannot be uploaded\n");
@@ -357,6 +354,14 @@ bool upload_file(char* file_name, char* local_path, char* remote_path, unsigned 
 		return 0;
 	}
 	parse_msg_post_file_response(resp_msg, &uuids, &num_uuids);
+	int i;
+	
+	for(i=0; i<num_uuids; i++)
+	{
+		char *str = uuid_str(uuids[i]);
+    		printf(" - %s\n", str);
+    		free(str);
+	}
 	free(err_msg_string);
 	free(resp->message);
 	free(resp);
@@ -390,7 +395,8 @@ void upload_folder(char* file_name, char* local_path, char* remote_path, unsigne
 	int empty = 1;
 	strcpy(local_temp, local_path);
     	strcpy(remote_temp, remote_path);
-    	change_dir(file_name, local_path, 0, IPaddr, PN);
+    	if(change_dir(file_name, local_path, 0, IPaddr, PN))
+		return;
 	if(strcmp(remote_path, "/")!=0)
 		strcat(remote_path,"/");
 	strcat(remote_path, file_name);
@@ -464,6 +470,13 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
 		return;
 	}
 	parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
+	printf("UUIDS received: ");
+	for(i=0; i<num_blocks; i++)
+	{
+		char *str = uuid_str(blocks[i].uuid);
+    		printf(" - %s\n", str);
+    		free(str);
+	}
 	fp = fopen(local_file, "w"); 
 	free(resp->message);
 	free(resp);
@@ -477,6 +490,8 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
 		ErrorCode error;
 		struct  Node* resp;
 		create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
+		printf("in client\n");
+		print_msg(msg);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		free(msg);
 		if(error == FAILURE || error == RETRY)
@@ -492,6 +507,9 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
 		{
 	      		parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);
+			char *str = uuid_str(blocks[i].uuid);
+    			printf(" - %s\n", str);
+    			free(str);
 			free(resp->message);
 			free(resp);
 			free(err_msg_string);
