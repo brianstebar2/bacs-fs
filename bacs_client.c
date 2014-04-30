@@ -798,7 +798,7 @@ printf("\nlocal_path: %s\n", local_path);*/
       fread(string, fsize, 1, fp);
       fclose(fp);
       string[fsize] = 0;
-     /* printf("%s\n",string);*/
+     printf("%s\n",string);
 	free(string);
     }
     else if(strcmp(command,"upload")==0)
