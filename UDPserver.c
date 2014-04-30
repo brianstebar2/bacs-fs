@@ -62,40 +62,36 @@ struct Node* myrecv(int PN)
 	char ackbuf[BUFLEN];
 	struct Node* Itr;
 	Itr = head = NULL;
-	printf("Inside myrecv\n");
+	/*printf("Inside myrecv\n");*/
 	
 	while(1){
-		printf("\n");
+		/*printf("\n");*/
 		memset((void*)&recv_message,0,sizeof(recv_message));
 		if (recvfrom(sockfd_rcv, &recv_message, sizeof(recv_message), 0, (struct sockaddr*)&my_addr, &slen)==-1)
 		{	    	
 			printf("Error: Recvfrom Failure\n");
 			return 0;
 		}
-		//printf("################here0\n");
-		printf("Message received: ");
-		//printf("################here1\n");
-		print_msg(recv_message.message);
-		//printf("################here2\n");
+	/*	printf("Message received: ");
+		print_msg(recv_message.message);*/
 		memset(ackbuf, 0, sizeof(ackbuf));
-		strcpy(ackbuf,"ACK");
-		//printf("################here3\n");	
+		strcpy(ackbuf,"ACK");	
 		if (sendto(sockfd_rcv, ackbuf, BUFLEN, 0, (struct sockaddr*)&my_addr, slen)==-1)
 		{
 			printf("Error: Sendto Failure\n");
 			return 0;
 		}
-		printf("ACK SENT\n");
+		/*printf("ACK SENT\n");*/
 		if(recv_message.seq_number==0){
-		printf("seq number = 0\n");
+		/*printf("seq number = 0\n");*/
 			if(head == NULL){
 				int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
-				printf("head is null\n");
+				/*printf("head is null\n");*/
 				create_new_node(head,recv_message.seq_number, my_addr.sin_addr.s_addr, recv_message.port_number,recv_message.size_of_blocks,total_blocks);
 			}
 			else{
 			int total_blocks = ceil((float)recv_message.size_of_blocks/BUFLEN);
-			printf("head not null\n");
+			/*printf("head not null\n");*/
 			while(Itr->next!=NULL){  		
 				Itr = Itr->next;
 			}
@@ -104,7 +100,7 @@ struct Node* myrecv(int PN)
 			}
 		}	
 		else{
-			printf("\n\n");
+			/*printf("\n\n");*/
 			Itr = head;
 			while((Itr->IP != my_addr.sin_addr.s_addr)&&(Itr->next!=NULL)){
 				Itr = Itr->next;
@@ -112,8 +108,8 @@ struct Node* myrecv(int PN)
 			memcpy(Itr->message, recv_message.message, sizeof(char)*recv_message.size_of_blocks);
 			Itr->counter--;
 			if(Itr->counter == 0){
-				printf("About to send string: ");
-				//print_msg(Itr->message);
+				/*printf("About to send string: ");
+				print_msg(Itr->message);*/
 				delete_node(Itr);
 				return Itr;	
 			}	

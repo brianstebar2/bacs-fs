@@ -42,7 +42,7 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks)
 	char rcvbuf[BUFLEN];
 	struct timeval timeout;
 	char* rp = p;
-	print_msg(rp);
+	/*print_msg(rp);*/
 	send_message.size_of_blocks = size_of_blocks;
 	/*Timer variables*/
 	timeout.tv_sec = 15;
@@ -54,8 +54,8 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks)
 		send_message.seq_number = i;
 		if(i==0)
 		{
-			sprintf(send_message.message, "%d", total_blocks);
-			printf("Number of packets to be sent %s\n", send_message.message);
+			/*sprintf(send_message.message, "%d", total_blocks);
+			printf("Number of packets to be sent %s\n", send_message.message);*/
 		}
 		else
 		{
@@ -74,18 +74,22 @@ ErrorCode mysend(void* p, long IPaddr, int PN, int size_of_blocks)
 			}
 			else
 			{
-				printf("sent: ");
-				print_msg(send_message.message);
+				/*printf("sent: ");
+				print_msg(send_message.message);*/
 			}
 			/*Configure a recieve timer*/
 			if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout,sizeof(timeout)) < 0)
 				printf("setsockopt: Error\n\n");
 			/*Receive ACK from Server*/
 			if (recvfrom(sockfd, rcvbuf, BUFLEN, 0, (struct sockaddr*)&serv_addr, &slen)==-1)
+			{
 				printf("No response received\n");
+				if(j==0)
+					printf("Resending packet....\n");
+			}
 			else
 			{
-				printf("Received response from server %s:%d:\t:%s\n\n",inet_ntoa(serv_addr.sin_addr),ntohs(serv_addr.sin_port), rcvbuf);
+				/*printf("Received response from server %s:%d:\t:%s\n\n",inet_ntoa(serv_addr.sin_addr),ntohs(serv_addr.sin_port), rcvbuf);*/
 				break;
 			}
 		}

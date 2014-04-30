@@ -22,7 +22,7 @@ int send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids, int PN
 		struct Node* resp;
 		if(i>=num_uuids)
 		{
-			printf("****************error num_uuids");
+			printf("Not enough uuids\n");
 			fclose(fp);
 			return 0;
 		}
@@ -60,7 +60,7 @@ int send_file(char *path, long IPaddr, uuid_t *uuids, uint64_t num_uuids, int PN
 		}
 		i++;
 	}
-	printf("\n...File uploaded successfully\n");
+	printf("\nFile uploaded successfully\n");
 	fclose(fp);
 	return 1;
 }

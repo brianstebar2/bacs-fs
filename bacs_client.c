@@ -78,7 +78,7 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
   		{
     			memset(path, 0, 1024);
 			strcpy(path, dirpath);
-    			printf("Changed to local directory '%s'\n", path);
+    			printf("New local path: '%s'\n", path);
   		}
   		else 
   		{
@@ -136,7 +136,7 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		}
 		else
 			strcpy(dirpath,"/");
-  		printf("dirpath:%s\n",dirpath);		
+  	/*	printf("dirpath:%s\n",dirpath);		*/
 		create_msg_get_folder_meta_request(dirpath, &msg, &msg_len);
 		error = mysend(msg, IPaddr, PN, msg_len);
 		free(msg);
@@ -160,17 +160,17 @@ bool change_dir(char* dir, char* path, bool l, unsigned long IPaddr, int PN)
 		free(err_msg_string);
 		free(resp->message);
 		free(resp);
-		printf("remote directory contains: \n");
+	/*	printf("remote directory contains: \n");*/
 		for(i=0; i < num_metas; i++)
 		{
-			printf("%s\n",basic_metas[i].name);
+			/*printf("%s\n",basic_metas[i].name);*/
 			free(basic_metas[i].name);
 		}
 		memset(path, 0, 1024);
 		strcpy(path, dirpath);
 		free(basic_metas);
+		printf("New remote path: '%s'\n", path);
 	}
-	printf("Remote directory '%s'\n", path);
   	return 0;
 }
 
@@ -184,7 +184,27 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
   		if (dp != NULL)
   		{
     			while ((ep = readdir (dp)))
-      				puts (ep->d_name);
+      			{
+				if(strcmp(ep->d_name,".")!=0 && strcmp(ep->d_name,"..")!=0)			
+				{
+					if(ep->d_type == DT_REG)
+					{
+						int size = -1;
+						char filepath[1024];
+						struct stat st;
+						strcpy(filepath,path);
+						strcat(filepath,"/");
+						strcat(filepath,ep->d_name);
+						if(stat(filepath, &st)==0)
+							size = st.st_size;
+						else
+							perror("Unable to calculate file size: ");
+						printf("%s	File	Size: %d\n",ep->d_name, size);
+					}
+					if(ep->d_type == DT_DIR)
+						printf("%s	Folder\n",ep->d_name);	
+				}	
+			}
     			closedir (dp);
   		}
   		else
@@ -222,12 +242,20 @@ void list_dir(char* path, bool l, unsigned long IPaddr, int PN)
 		free(err_msg_string);
 		free(resp->message);
 		free(resp);	
-		printf("remote directory contains: \n");
-		for(i=0; i < num_metas; i++)
+		if(num_metas>0)
 		{
-			printf("%s\n",basic_metas[i].name);
-			free(basic_metas[i].name);
+			/*printf("remote directory contains: \n");*/
+			for(i=0; i < num_metas; i++)
+			{
+				if(basic_metas[i].type==BACS_FILE_TYPE)
+					printf("%s	FILE	Size: %d\n",basic_metas[i].name,basic_metas[i].size);
+				else
+					printf("%s	FOLDER\n",basic_metas[i].name);
+				free(basic_metas[i].name);
+			}
 		}
+		else
+			printf("Empty folder.\n");
 		free(basic_metas);
 	}
 }
@@ -316,7 +344,7 @@ bool upload_file(char* file_name, char* local_path, char* remote_path, unsigned 
 	if(stat(filepath, &st)==0)
 	{
 		size = st.st_size;
-		printf("*********************************size= %d\n", size);
+	/*	printf("*********************************size= %d\n", size);*/
 		if(size == 0)
 		{
 			printf("File empty. Cannot be uploaded\n");
@@ -359,7 +387,7 @@ bool upload_file(char* file_name, char* local_path, char* remote_path, unsigned 
 	for(i=0; i<num_uuids; i++)
 	{
 		char *str = uuid_str(uuids[i]);
-    		printf(" - %s\n", str);
+    		/*printf(" - %s\n", str);*/
     		free(str);
 	}
 	free(err_msg_string);
@@ -400,6 +428,7 @@ void upload_folder(char* file_name, char* local_path, char* remote_path, unsigne
 	if(strcmp(remote_path, "/")!=0)
 		strcat(remote_path,"/");
 	strcat(remote_path, file_name);
+	printf("Uploading folder '%s'\n", file_name);
 	/* upload individual files */
     	dirp = opendir(local_path);
     	if (dirp != 0) 
@@ -470,11 +499,11 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
 		return;
 	}
 	parse_msg_get_file_response(resp_msg, &blocks, &num_blocks);
-	printf("UUIDS received: ");
+	/*printf("UUIDS received: ");*/
 	for(i=0; i<num_blocks; i++)
 	{
 		char *str = uuid_str(blocks[i].uuid);
-    		printf(" - %s\n", str);
+    		/*printf(" - %s\n", str);*/
     		free(str);
 	}
 	fp = fopen(local_file, "w"); 
@@ -490,8 +519,8 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
 		ErrorCode error;
 		struct  Node* resp;
 		create_msg_get_block_request(blocks[i].uuid, &msg, &msg_len);
-		printf("in client\n");
-		print_msg(msg);
+		/*printf("in client\n");
+		print_msg(msg);*/
 		error = mysend(msg, IPaddr, PN, msg_len);
 		free(msg);
 		if(error == FAILURE || error == RETRY)
@@ -507,9 +536,9 @@ void download_file(char* file_name, char* local_path, char* remote_path, unsigne
 		{
 	      		parse_msg_error(resp_msg, &err_msg_string);
 			printf("%s\n",err_msg_string);
-			char *str = uuid_str(blocks[i].uuid);
+			/*char *str = uuid_str(blocks[i].uuid);
     			printf(" - %s\n", str);
-    			free(str);
+    			free(str);*/
 			free(resp->message);
 			free(resp);
 			free(err_msg_string);
@@ -552,10 +581,8 @@ void download_folder(char* file_name, char* local_path, char* remote_path, unsig
 	{	printf("error in send\n");
 		return;
 	}
-	printf("************here1\n");
 	resp = myrecv(CLIENT_PORT);
 	resp_msg = resp->message;
-	printf("************here2\n");
 	if(get_header_type(resp_msg) == BACS_ERROR)
 	{
       		parse_msg_error(resp_msg, &err_msg_string);
@@ -565,7 +592,6 @@ void download_folder(char* file_name, char* local_path, char* remote_path, unsig
 		free(err_msg_string);
 		return;
 	}
-	printf("************here3\n");
 	parse_msg_get_folder_meta_response(resp_msg, &basic_metas, &num_metas);
 	free(resp->message);
 	free(resp);
@@ -772,7 +798,7 @@ printf("\nlocal_path: %s\n", local_path);*/
       fread(string, fsize, 1, fp);
       fclose(fp);
       string[fsize] = 0;
-      printf("%s\n",string);
+     /* printf("%s\n",string);*/
 	free(string);
     }
     else if(strcmp(command,"upload")==0)
@@ -1003,6 +1029,8 @@ printf("\nlocal_path: %s\n", local_path);*/
   	free(remote_path); 
       	exit(EXIT_SUCCESS);
     }
+    else
+	printf("Syntax error.\n");
   }
   return(0);
 }

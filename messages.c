@@ -839,14 +839,8 @@ uint8_t msg_with_single_element(uint8_t action, uint8_t resource, uint8_t type,
   /* Add the element to the message after the header */
   index = BACS_HEADER_SIZE;
   *(uint32_t *)&string[index] = element_len;
-	printf("**************1: ");
-	print_msg(string);
   index = index + sizeof(uint32_t);
-	printf("index = %d\n",index);
-	printf("len = %d\n",element_len);
-char *str = uuid_str(element);
-    		printf(" - %s\n", str);
-    	//	free(str);
+
 int i=0;
   char*a=element;
 	for(i=0; i<element_len; i++ ) 
@@ -855,9 +849,7 @@ int i=0;
 		index++;
 	}
 		//memcpy(&string[index], element, element_len);
-//printf("*************2: %s\n",string);
-	printf("**************2: ");
-	print_msg(string);
+
   /* Set the return values */
   *msg_len = num_chars;
   *msg = string;
